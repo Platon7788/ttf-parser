@@ -181,13 +181,15 @@ fn map_value(map: &LazyArray16<AxisValueMap>, value: i16) -> Option<i16> {
         return Some(prev_to);
     }
 
-    let curr_from = i32::from(curr_from);
-    let curr_to = i32::from(curr_to);
-    let prev_from = i32::from(prev_from);
-    let prev_to = i32::from(prev_to);
+    // i64, not i32: the coordinates are unvalidated i16, so `curr_to - prev_to` spans +-65535
+    // and `value - prev_from` reaches 49152. Their product exceeds i32::MAX. ~keep
+    let curr_from = i64::from(curr_from);
+    let curr_to = i64::from(curr_to);
+    let prev_from = i64::from(prev_from);
+    let prev_to = i64::from(prev_to);
 
     let denom = curr_from - prev_from;
-    let k = (curr_to - prev_to) * (i32::from(value) - prev_from) + denom / 2;
+    let k = (curr_to - prev_to) * (i64::from(value) - prev_from) + denom / 2;
     let value = prev_to + k / denom;
     i16::try_from(value).ok()
 }
