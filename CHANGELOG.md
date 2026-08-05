@@ -5,10 +5,78 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- `alloc` build feature, for `no_std` builds with an allocator.
+  `Name::to_string` and the `gvar-alloc` heap spill no longer require `std`.
+  Thanks to [iriswebb](https://github.com/iriswebb).
+- (`cmap`) `Subtable4::codepoints_iter` and `Subtable12::codepoints_iter`.
+  Unlike `codepoints`, they allow early exit. Both take `self` by value.
+  Thanks to [MoSal](https://github.com/MoSal).
+- `CFFError::SubroutineCallLimitReached`.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- `core::error::Error` is implemented for `FaceParsingError` in `no_std` builds now.
+  Thanks to [iriswebb](https://github.com/iriswebb).
+
+### Changed
+- (`loca`) `loca::Table::len` returns `u32` instead of `u16`, and the `Table::Short`/`Table::Long`
+  payloads are `LazyArray32` instead of `LazyArray16`.
+  Thanks to [asibahi](https://github.com/asibahi).
+- The `gvar-alloc` build feature implies `alloc` instead of `std` now.
+  A `default-features = false, features = ["gvar-alloc"]` build no longer satisfies
+  the `std`/`no-std-float` guard and must select one of them explicitly.
+  Thanks to [iriswebb](https://github.com/iriswebb).
+- `Face::set_variation` returns `None` for an axis tag the face does not expose.
+  It previously returned `Some(())` unconditionally, contradicting its own documentation.
+  This is a behavioural change and will not produce a compile error.
+  Thanks to [asibahi](https://github.com/asibahi).
+- `CFFError` is `#[non_exhaustive]` now, so that future hardening limits can add variants
+  without breaking downstream code. Together with the new `SubroutineCallLimitReached`
+  variant, this does break existing exhaustive matches on it.
+- Bump MSRV to 1.88 and move to edition 2024.
+- Documented the `Face::style` fallback to `Style::Normal` when `OS/2` is absent.
+  Thanks to [dereified](https://github.com/dereified).
+
 ### Fixed
-- CFF glyphs containing the deprecated `dotsection` operator are no longer rejected.
+- (`CFF`) Bound the total number of subroutine invocations per glyph.
+  `STACK_LIMIT` bounds nesting depth only, so work grew as fanout^depth:
+  a 255-byte `CFF` table hung for over 30 seconds.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- (`GSUB`/`GPOS`) Reject self-referential extension lookups.
+  An extension lookup pointing at the extension type recursed unboundedly:
+  a stack-overflow abort in debug and an infinite loop in release, from 8 bytes of input.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- (`loca`) Support tables with 65536 offsets.
+  A well-formed 65535-glyph font was rejected, `glyf` was dropped entirely
+  and every outline returned `None`.
+  Thanks to [asibahi](https://github.com/asibahi).
+- (`glyf`/`gvar`) Cap the total number of component visits when outlining composite glyphs.
+  `MAX_COMPONENTS` bounds chain depth only, so shared child glyphs let sibling components
+  force branching^depth re-walks under the cap.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- (`COLR`) Cap the total number of paint-graph node visits in v1 painting.
+  The recursion stack bounds path depth but not fan-out, and `layers_count` is a `u8`,
+  so a small font could force an enormous traversal.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- (`CFF2`) Guard the `BLEND` operator against an empty argument stack.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- (`CFF`) Glyphs containing the deprecated `dotsection` operator are no longer rejected.
   Previously the whole charstring failed with `UnsupportedOperator`, so glyphs like
   `i`, `j`, `!` and `.` in fonts converted from Type 1 produced no outline at all.
+  Thanks to [tobocop2](https://github.com/tobocop2).
+- (`GSUB`/`GPOS`) `LazyOffsetArrayIter16` skips `NULL` offsets instead of ending iteration.
+  A `NULL` offset hid every later entry, so valid fonts silently lost sequence rule sets.
+  Thanks to [asibahi](https://github.com/asibahi).
+- (`GSUB`/`GPOS`) `LazyOffsetArrayIter16::count` no longer over-reports by the number of
+  skipped entries and agrees with `collect().len()` now.
+- (`avar`) `map_value` arithmetic no longer overflows.
+  Unvalidated `i16` coordinates could panic in debug or silently invert the sign in release.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- (`fvar`) Read the `HIDDEN_AXIS` flag from bit 0, not bit 3.
+  Hidden axes were never reported for conforming fonts.
+  Thanks to [SamusAranX](https://github.com/SamusAranX).
+- (C API) `ttfp_get_glyph_name` rejects glyph names longer than the documented 256-byte
+  buffer instead of panicking across the `extern "C"` boundary, which is a non-unwinding abort.
+  Thanks to [scadastrangelove](https://github.com/scadastrangelove).
 
 ## [0.25.1] - 2024-11-29
 ### Changed
