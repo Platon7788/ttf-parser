@@ -39,6 +39,12 @@ jobs:
     - name: Build with std
       run: cargo build --no-default-features --features=std
 
+    # No other permutation builds `alloc` without `std`, and `--all-features` enables
+    # `std` too, so without this the alloc-only paths in `name.rs` and `gvar.rs` are
+    # never compiled. `no-std-float` is required to satisfy the float guard.
+    - name: Build with alloc and no std
+      run: cargo build --no-default-features --features=alloc,no-std-float,variable-fonts,gvar-alloc
+
     - name: Build with variable-fonts
       run: cargo build --no-default-features --features=variable-fonts,no-std-float
 
