@@ -997,6 +997,11 @@ impl<'a> Table<'a> {
         #[cfg(feature = "variable-fonts")] coords: &[NormalizedCoordinate],
         foreground_color: RgbaColor,
     ) -> Option<()> {
+        // Charged before any other bail-out. Seeking, reading the format and the cycle check all
+        // cost real work, so a graph whose nodes mostly point back at an ancestor would otherwise
+        // be traversed for free and the budget would bound 256x more work than it claims. ~keep
+        recursion_stack.consume_visit().ok()?;
+
         let mut s = Stream::new_at(self.data, offset)?;
         let format = s.read::<u8>()?;
 
@@ -1004,10 +1009,6 @@ impl<'a> Table<'a> {
         if recursion_stack.contains(offset) {
             return None;
         }
-
-        // Total-visit budget exceeded (a DAG can revisit the same offset via different sibling
-        // branches without ever cycling on the active path -- see `RecursionStack::visits_left`).
-        recursion_stack.consume_visit().ok()?;
 
         recursion_stack.push(offset).ok()?;
         let result = self.parse_paint_impl(
@@ -1851,9 +1852,9 @@ struct RecursionStack {
     visits_left: u32,
 }
 
-// The limit of 100_000 total paint-graph node visits is chosen arbitrarily, mirroring
-// `glyf::MAX_COMPONENT_VISITS` -- real color-font paint graphs are expected to have at most a few
-// hundred nodes.
+// Not from the spec. HarfBuzz bounds the same traversal with `HB_MAX_GRAPH_EDGE_COUNT = 2048` and
+// renders real color fonts with it, so real paint graphs sit far below this; we keep more headroom
+// because we count nodes rather than edges. Matches `glyf::MAX_COMPONENT_VISITS`. ~keep
 const MAX_PAINT_VISITS: u32 = 100_000;
 
 impl RecursionStack {
