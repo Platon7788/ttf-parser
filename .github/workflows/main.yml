@@ -56,6 +56,12 @@ jobs:
       working-directory: c-api
       run: cargo build --no-default-features --features=variable-fonts
 
+    # The root package is not a workspace, so a root `cargo test` never reaches c-api.
+    # Without this step the crate's Rust tests are compiled by nothing and run by nothing.
+    - name: Test C API (Rust)
+      working-directory: c-api
+      run: cargo test
+
     - name: Test C API
       working-directory: c-api
       run: |
