@@ -785,7 +785,14 @@ impl<'a> Stream<'a> {
     /// Reads the next `count` types as a slice.
     #[inline]
     pub fn read_array32<T: FromData>(&mut self, count: u32) -> Option<LazyArray32<'a, T>> {
-        let len = usize::num_from(count) * T::SIZE;
+        // `count` is a raw u32 from the font, so `count * T::SIZE` can exceed the buffer by
+        // orders of magnitude. That is malformed input, not the caller logic error that
+        // `read_bytes` asserts on, so reject it against the real buffer length first. ~keep
+        let len = usize::num_from(count).checked_mul(T::SIZE)?;
+        if len > self.data.len().checked_sub(self.offset)? {
+            return None;
+        }
+
         self.read_bytes(len).map(LazyArray32::new)
     }
 

@@ -136,7 +136,6 @@ fn font_collection_num_fonts_overflow_1() {
 }
 
 #[test]
-#[should_panic]
 fn font_collection_num_fonts_overflow_2() {
     use Unit::*;
     let data = convert(&[
