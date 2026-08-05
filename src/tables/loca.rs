@@ -61,8 +61,8 @@ impl<'a> Table<'a> {
     #[inline]
     pub fn len(&self) -> u16 {
         match self {
-            Table::Short(ref array) => array.len(),
-            Table::Long(ref array) => array.len(),
+            Table::Short(array) => array.len(),
+            Table::Long(array) => array.len(),
         }
     }
 
@@ -85,11 +85,11 @@ impl<'a> Table<'a> {
         }
 
         let range = match self {
-            Table::Short(ref array) => {
+            Table::Short(array) => {
                 // 'The actual local offset divided by 2 is stored.'
                 usize::from(array.get(glyph_id)?) * 2..usize::from(array.get(glyph_id + 1)?) * 2
             }
-            Table::Long(ref array) => {
+            Table::Long(array) => {
                 usize::num_from(array.get(glyph_id)?)..usize::num_from(array.get(glyph_id + 1)?)
             }
         };

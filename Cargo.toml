@@ -14,12 +14,12 @@ description = "A high-level, safe, zero-allocation font parser for TrueType, Ope
 repository = "https://github.com/harfbuzz/ttf-parser"
 documentation = "https://docs.rs/ttf-parser/"
 readme = "README.md"
-edition = "2018"
-rust-version = "1.63.0"
+edition = "2024"
+rust-version = "1.88.0"
 exclude = ["benches/", "tests/", "testing-tools/", "examples/", "meson.build"]
 
 [dependencies]
-core_maths = { version = "0.1.0", optional = true } # only for no_std builds
+core_maths = { version = "0.1.1", optional = true } # only for no_std builds
 
 [features]
 default = ["std", "opentype-layout", "apple-layout", "variable-fonts", "glyph-names"]
@@ -48,9 +48,9 @@ glyph-names = []
 gvar-alloc = ["std"]
 
 [dev-dependencies]
-base64 = "0.22"
+base64 = "0.23"
 pico-args = "0.5"
-tiny-skia-path = "0.11"
+tiny-skia-path = "0.12"
 xmlwriter = "0.1"
 
 [package.metadata.typos.default]
