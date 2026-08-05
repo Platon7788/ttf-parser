@@ -54,6 +54,12 @@ jobs:
     - name: Run tests
       run: cargo test
 
+    # debug_assert! is compiled out in release, so debug and release can disagree about
+    # whether malformed input panics or is rejected cleanly. Running only debug hid a
+    # failing test on main for months.
+    - name: Run tests (release)
+      run: cargo test --release
+
     - name: Build C API
       working-directory: c-api
       run: cargo build --no-default-features
