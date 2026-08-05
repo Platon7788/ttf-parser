@@ -662,10 +662,8 @@ impl<'a, T: FromSlice<'a>> Iterator for LazyOffsetArrayIter16<'a, T> {
         None
     }
 
-    #[inline]
-    fn count(self) -> usize {
-        usize::from(self.array.len().saturating_sub(self.index))
-    }
+    // No `count` override: `next` skips NULL and unparsable entries, so the number of
+    // iterations is not the number of slots. Use `LazyOffsetArray16::len` for the latter. ~keep
 }
 
 /// A streaming binary parser.
