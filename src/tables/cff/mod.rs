@@ -16,7 +16,10 @@ use crate::parser::{FromData, TryNumFrom};
 use crate::{OutlineBuilder, RectF};
 
 /// A list of errors that can occur during a CFF glyph outlining.
+// Non-exhaustive because new hardening limits add variants; without this every such
+// addition is a breaking change for downstream exhaustive matches. ~keep
 #[allow(missing_docs)]
+#[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CFFError {
     NoGlyph,
