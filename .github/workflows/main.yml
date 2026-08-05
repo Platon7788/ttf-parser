@@ -6,6 +6,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Separate from `build` so it reports independently and does not run once per
+  # toolchain: linting is toolchain-independent and needs no Rust installed.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install poly
+        uses: Goldziher/poly@v0
+        with:
+          # Pinned: the `latest` path resolves a release at run time, which would
+          # let a new poly release turn every open PR red without a commit here.
+          version: 0.19.2
+
+      # `--no-workspace` keeps poly from shelling out to cargo clippy, cargo-deny and
+      # friends. This crate has never had a clippy config, so that would be an
+      # unbounded set of new findings, and this job has no Rust toolchain anyway.
+      - name: Lint
+        run: poly lint --no-workspace .
+
+      - name: Check formatting
+        run: poly fmt --check .
+
   build:
     runs-on: ubuntu-latest
     strategy:
