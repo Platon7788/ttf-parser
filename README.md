@@ -13,6 +13,8 @@ A high-level, safe, zero-allocation font parser for
 
 Can be used as a Rust or C library.
 
+Requires Rust 1.88 and uses edition 2024.
+
 ### Features
 
 - A high-level API for most common properties, hiding all parsing and data resolving logic.
@@ -33,7 +35,10 @@ Can be used as a Rust or C library.
 - The library must not panic. Any panic considered as a critical bug and should be reported.
 - The library forbids unsafe code.
 - No heap allocations, so crash due to OOM is not possible.
-- All recursive methods have a depth limit.
+- All recursive methods have a depth limit, and the ones whose input forms a graph
+  (composite glyphs, the COLRv1 paint graph, CFF subroutines) additionally bound the
+  *total* work per call. A depth limit alone does not: with fan-out `b` and depth `d`,
+  a small font can force `b^d` visits without ever exceeding the depth.
 - Technically, should use less than 64KiB of stack in the worst case scenario.
 - Most of arithmetic operations are checked.
 - Most of numeric casts are checked.
@@ -191,6 +196,10 @@ Licensed under either of
 at your option.
 
 ### Contribution
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to build and test the library, the C API
+and the benchmarks, the lint and formatting workflow, and what is expected of a change to a
+parser of untrusted input.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
