@@ -1,11 +1,16 @@
 #[rustfmt::skip] mod aat;
 #[rustfmt::skip] mod ankr;
+#[cfg(feature = "variable-fonts")]
+#[rustfmt::skip] mod avar;
 #[rustfmt::skip] mod cff1;
+#[cfg(feature = "variable-fonts")]
+#[rustfmt::skip] mod cff2;
 #[rustfmt::skip] mod cmap;
 #[rustfmt::skip] mod colr;
 #[rustfmt::skip] mod feat;
 #[rustfmt::skip] mod glyf;
 #[rustfmt::skip] mod hmtx;
+#[rustfmt::skip] mod loca;
 #[rustfmt::skip] mod maxp;
 #[rustfmt::skip] mod sbix;
 #[rustfmt::skip] mod trak;

@@ -1127,7 +1127,7 @@ fn sb_build_cff(fanout: usize, depth: usize) -> Vec<u8> {
 fn subr_call_budget_bounds_fanout_amplification() {
     // fanout=4, depth=8 stays within STACK_LIMIT (max nesting depth 8 < 10) but
     // performs sum_{L=1}^{8} 4^L = 87380 subroutine invocations, exceeding the
-    // 64000 budget. Without the cap this expands as ~fanout^depth (unbounded work).
+    // MAX_SUBROUTINE_CALLS budget. Without the cap this expands as ~fanout^depth.
     let data = sb_build_cff(4, 8);
     let table = cff::Table::parse(&data).unwrap();
     let mut builder = Builder(String::new());
