@@ -177,6 +177,17 @@ impl<'a> Iterator for CompositeGlyphIter<'a> {
                 ts.e = f32::from(self.stream.read::<i8>()?);
                 ts.f = f32::from(self.stream.read::<i8>()?);
             }
+        } else {
+            // Point-matching args. We do not support matching (see the README), but the
+            // args still occupy the stream, so they must be skipped or every subsequent
+            // read in this component and the next one is misaligned. ~keep
+            if flags.arg_1_and_2_are_words() {
+                self.stream.skip::<u16>();
+                self.stream.skip::<u16>();
+            } else {
+                self.stream.skip::<u8>();
+                self.stream.skip::<u8>();
+            }
         }
 
         if flags.we_have_a_two_by_two() {
