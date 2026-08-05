@@ -1,5 +1,5 @@
-use crate::parser::{FromData, LazyArray32, Offset, Offset32, Stream, U24};
 use crate::GlyphId;
+use crate::parser::{FromData, LazyArray32, Offset, Offset32, Stream, U24};
 
 #[derive(Clone, Copy)]
 struct VariationSelectorRecord {

@@ -1,8 +1,8 @@
 //! A [Color Bitmap Location Table](
 //! https://docs.microsoft.com/en-us/typography/opentype/spec/cblc) implementation.
 
-use crate::parser::{FromData, NumFrom, Offset, Offset16, Offset32, Stream};
 use crate::GlyphId;
+use crate::parser::{FromData, NumFrom, Offset, Offset16, Offset32, Stream};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) struct BitmapFormat {

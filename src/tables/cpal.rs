@@ -3,8 +3,8 @@
 
 use core::num::NonZeroU16;
 
-use crate::parser::{FromData, LazyArray16, Offset, Offset32, Stream};
 use crate::RgbaColor;
+use crate::parser::{FromData, LazyArray16, Offset, Offset32, Stream};
 
 /// A [Color Palette Table](
 /// https://docs.microsoft.com/en-us/typography/opentype/spec/cpal).

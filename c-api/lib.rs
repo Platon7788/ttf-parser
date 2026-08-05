@@ -1,10 +1,11 @@
 #![allow(non_camel_case_types)]
 
 use std::convert::TryFrom;
-use std::os::raw::{c_void, c_char};
+use std::os::raw::{c_char, c_void};
 
 use ttf_parser::GlyphId;
-#[cfg(feature = "variable-fonts")] use ttf_parser::Tag;
+#[cfg(feature = "variable-fonts")]
+use ttf_parser::Tag;
 
 /// @brief An opaque pointer to the font face structure.
 pub struct ttfp_face {
@@ -17,7 +18,8 @@ pub struct ttfp_outline_builder {
     pub move_to: unsafe extern "C" fn(x: f32, y: f32, data: *mut c_void),
     pub line_to: unsafe extern "C" fn(x: f32, y: f32, data: *mut c_void),
     pub quad_to: unsafe extern "C" fn(x1: f32, y1: f32, x: f32, y: f32, data: *mut c_void),
-    pub curve_to: unsafe extern "C" fn(x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32, data: *mut c_void),
+    pub curve_to:
+        unsafe extern "C" fn(x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32, data: *mut c_void),
     pub close_path: unsafe extern "C" fn(data: *mut c_void),
 }
 
@@ -193,7 +195,12 @@ pub extern "C" fn ttfp_fonts_in_collection(data: *const c_char, len: usize) -> i
 /// @param face A pointer to a #ttfp_face object.
 /// @return `true` on success.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_face_init(data: *const c_char, len: usize, index: u32, face: *mut c_void) -> bool {
+pub extern "C" fn ttfp_face_init(
+    data: *const c_char,
+    len: usize,
+    index: u32,
+    face: *mut c_void,
+) -> bool {
     // This method invokes a lot of parsing, so let's catch any panics just in case.
     std::panic::catch_unwind(|| {
         let data = unsafe { std::slice::from_raw_parts(data as *const _, len) };
@@ -210,7 +217,8 @@ pub extern "C" fn ttfp_face_init(data: *const c_char, len: usize, index: u32, fa
         }
 
         true
-    }).unwrap_or(false)
+    })
+    .unwrap_or(false)
 }
 
 /// @brief Returns the size of `ttfp_face`.
@@ -517,7 +525,9 @@ pub extern "C" fn ttfp_get_underline_metrics(
 ) -> bool {
     match face_from_ptr(face).underline_metrics() {
         Some(m) => {
-            unsafe { *metrics = m; }
+            unsafe {
+                *metrics = m;
+            }
             true
         }
         None => false,
@@ -536,7 +546,9 @@ pub extern "C" fn ttfp_get_strikeout_metrics(
 ) -> bool {
     match face_from_ptr(face).strikeout_metrics() {
         Some(m) => {
-            unsafe { *metrics = m; }
+            unsafe {
+                *metrics = m;
+            }
             true
         }
         None => false,
@@ -555,7 +567,9 @@ pub extern "C" fn ttfp_get_subscript_metrics(
 ) -> bool {
     match face_from_ptr(face).subscript_metrics() {
         Some(m) => {
-            unsafe { *metrics = m; }
+            unsafe {
+                *metrics = m;
+            }
             true
         }
         None => false,
@@ -574,7 +588,9 @@ pub extern "C" fn ttfp_get_superscript_metrics(
 ) -> bool {
     match face_from_ptr(face).superscript_metrics() {
         Some(m) => {
-            unsafe { *metrics = m; }
+            unsafe {
+                *metrics = m;
+            }
             true
         }
         None => false,
@@ -605,7 +621,8 @@ pub extern "C" fn ttfp_get_glyph_index(face: *const ttfp_face, codepoint: u32) -
         };
 
         get().unwrap_or(0)
-    }).unwrap_or(0)
+    })
+    .unwrap_or(0)
 }
 
 /// @brief Resolves a variation of a Glyph ID from two code points.
@@ -624,11 +641,14 @@ pub extern "C" fn ttfp_get_glyph_var_index(
         let get = || {
             let c = char::try_from(codepoint).ok()?;
             let v = char::try_from(variation).ok()?;
-            face_from_ptr(face).glyph_variation_index(c, v).map(|gid| gid.0)
+            face_from_ptr(face)
+                .glyph_variation_index(c, v)
+                .map(|gid| gid.0)
         };
 
         get().unwrap_or(0)
-    }).unwrap_or(0)
+    })
+    .unwrap_or(0)
 }
 
 /// @brief Returns glyph's horizontal advance.
@@ -653,8 +673,13 @@ pub extern "C" fn ttfp_get_glyph_ver_advance(face: *const ttfp_face, glyph_id: G
 ///
 /// @return Glyph's side bearing or 0 when not set.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_hor_side_bearing(face: *const ttfp_face, glyph_id: GlyphId) -> i16 {
-    face_from_ptr(face).glyph_hor_side_bearing(glyph_id).unwrap_or(0)
+pub extern "C" fn ttfp_get_glyph_hor_side_bearing(
+    face: *const ttfp_face,
+    glyph_id: GlyphId,
+) -> i16 {
+    face_from_ptr(face)
+        .glyph_hor_side_bearing(glyph_id)
+        .unwrap_or(0)
 }
 
 /// @brief Returns glyph's vertical side bearing.
@@ -663,8 +688,13 @@ pub extern "C" fn ttfp_get_glyph_hor_side_bearing(face: *const ttfp_face, glyph_
 ///
 /// @return Glyph's side bearing or 0 when not set.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_ver_side_bearing(face: *const ttfp_face, glyph_id: GlyphId) -> i16 {
-    face_from_ptr(face).glyph_ver_side_bearing(glyph_id).unwrap_or(0)
+pub extern "C" fn ttfp_get_glyph_ver_side_bearing(
+    face: *const ttfp_face,
+    glyph_id: GlyphId,
+) -> i16 {
+    face_from_ptr(face)
+        .glyph_ver_side_bearing(glyph_id)
+        .unwrap_or(0)
 }
 
 /// @brief Returns glyph's vertical origin.
@@ -745,7 +775,8 @@ pub extern "C" fn ttfp_outline_glyph(
             }
             None => false,
         }
-    }).unwrap_or(false)
+    })
+    .unwrap_or(false)
 }
 
 /// @brief Returns a tight glyph bounding box.
@@ -762,22 +793,19 @@ pub extern "C" fn ttfp_get_glyph_bbox(
     bbox: *mut ttf_parser::Rect,
 ) -> bool {
     // This method invokes a lot of parsing, so let's catch any panics just in case.
-    std::panic::catch_unwind(|| {
-        match face_from_ptr(face).glyph_bounding_box(glyph_id) {
-            Some(bb) => {
-                unsafe { *bbox = bb }
-                true
-            }
-            None => false,
+    std::panic::catch_unwind(|| match face_from_ptr(face).glyph_bounding_box(glyph_id) {
+        Some(bb) => {
+            unsafe { *bbox = bb }
+            true
         }
-    }).unwrap_or(false)
+        None => false,
+    })
+    .unwrap_or(false)
 }
 
 /// @brief Returns a bounding box that large enough to enclose any glyph from the face.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_global_bounding_box(
-    face: *const ttfp_face,
-) -> ttf_parser::Rect {
+pub extern "C" fn ttfp_get_global_bounding_box(face: *const ttfp_face) -> ttf_parser::Rect {
     face_from_ptr(face).global_bounding_box()
 }
 
@@ -918,7 +946,11 @@ pub extern "C" fn ttfp_get_variation_axis_by_tag(
     tag: ttf_parser::Tag,
     axis: *mut ttf_parser::VariationAxis,
 ) -> bool {
-    match face_from_ptr(face).variation_axes().into_iter().find(|axis| axis.tag == tag) {
+    match face_from_ptr(face)
+        .variation_axes()
+        .into_iter()
+        .find(|axis| axis.tag == tag)
+    {
         Some(a) => {
             unsafe { *axis = a };
             true
@@ -1099,7 +1131,11 @@ mod tests {
         record(b"head", head_off, head.len(), &mut font);
         record(b"hhea", hhea_off, hhea.len(), &mut font);
         record(b"maxp", maxp_off, maxp.len(), &mut font);
-        for (data, len) in [(&head, head.len()), (&hhea, hhea.len()), (&maxp, maxp.len())] {
+        for (data, len) in [
+            (&head, head.len()),
+            (&hhea, hhea.len()),
+            (&maxp, maxp.len()),
+        ] {
             font.extend_from_slice(data);
             font.extend(std::iter::repeat(0).take(pad(len)));
         }

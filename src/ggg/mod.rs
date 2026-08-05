@@ -5,8 +5,8 @@
 // A heavily modified port of https://github.com/harfbuzz/rustybuzz implementation
 // originally written by https://github.com/laurmaedje
 
-use crate::parser::{FromData, FromSlice, LazyArray16, Stream};
 use crate::GlyphId;
+use crate::parser::{FromData, FromSlice, LazyArray16, Stream};
 
 mod chained_context;
 mod context;

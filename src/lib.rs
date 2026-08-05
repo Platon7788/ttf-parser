@@ -78,7 +78,7 @@ use parser::{NumFrom, Offset, Offset32, Stream, TryNumFrom};
 pub use fvar::VariationAxis;
 
 pub use language::Language;
-pub use name::{name_id, PlatformId};
+pub use name::{PlatformId, name_id};
 pub use os2::{Permissions, ScriptMetrics, Style, UnicodeRanges, Weight, Width};
 pub use tables::CFFError;
 #[cfg(feature = "apple-layout")]

@@ -2,8 +2,8 @@
 //!
 //! <https://docs.microsoft.com/en-us/typography/opentype/spec/otvarcommonformats#item-variation-store>
 
-use crate::parser::{FromData, LazyArray16, NumFrom, Stream};
 use crate::NormalizedCoordinate;
+use crate::parser::{FromData, LazyArray16, NumFrom, Stream};
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ItemVariationStore<'a> {

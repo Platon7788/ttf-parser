@@ -6,8 +6,8 @@ use alloc::string::String;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-use crate::parser::{FromData, LazyArray16, Offset, Offset16, Stream};
 use crate::Language;
+use crate::parser::{FromData, LazyArray16, Offset, Offset16, Stream};
 
 /// A list of [name ID](https://docs.microsoft.com/en-us/typography/opentype/spec/name#name-ids)'s.
 pub mod name_id {

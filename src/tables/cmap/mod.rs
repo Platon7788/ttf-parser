@@ -9,7 +9,7 @@ methods.
 */
 
 use crate::parser::{FromData, LazyArray16, Offset, Offset32, Stream};
-use crate::{name::PlatformId, GlyphId};
+use crate::{GlyphId, name::PlatformId};
 
 mod format0;
 mod format10;
@@ -21,13 +21,13 @@ mod format4;
 mod format6;
 
 pub use format0::Subtable0;
+pub use format2::Subtable2;
+pub use format4::Subtable4;
+pub use format6::Subtable6;
 pub use format10::Subtable10;
 pub use format12::Subtable12;
 pub use format13::Subtable13;
 pub use format14::{GlyphVariationResult, Subtable14};
-pub use format2::Subtable2;
-pub use format4::Subtable4;
-pub use format6::Subtable6;
 
 /// A character encoding subtable variant.
 #[allow(missing_docs)]

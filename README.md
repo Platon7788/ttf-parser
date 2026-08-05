@@ -1,4 +1,5 @@
 ## ttf-parser
+
 ![Build Status](https://github.com/harfbuzz/ttf-parser/workflows/Rust/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/ttf-parser.svg)](https://crates.io/crates/ttf-parser)
 [![Documentation](https://docs.rs/ttf-parser/badge.svg)](https://docs.rs/ttf-parser)
@@ -183,9 +184,9 @@ test width                       ... bench:         0.2 ns/iter (+/- 0)
 Licensed under either of
 
 - Apache License, Version 2.0
-  ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+  ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
 - MIT license
-  ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+  ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

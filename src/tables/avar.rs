@@ -3,8 +3,8 @@
 
 use core::convert::TryFrom;
 
-use crate::parser::{FromData, LazyArray16, Stream};
 use crate::NormalizedCoordinate;
+use crate::parser::{FromData, LazyArray16, Stream};
 
 /// An axis value map.
 #[derive(Clone, Copy, Debug)]

@@ -2,10 +2,10 @@
 name = "ttf-parser-capi"
 version = "0.25.1"
 authors = [
-    "Caleb Maclennan <caleb@alerque.com>",
-    "Laurenz Stampfl <laurenz.stampfl@gmail.com>",
-    "Yevhenii Reizner <razrfalcon@gmail.com>",
-    "خالد حسني (Khaled Hosny) <khaled@aliftype.com>"
+  "Caleb Maclennan <caleb@alerque.com>",
+  "Laurenz Stampfl <laurenz.stampfl@gmail.com>",
+  "Yevhenii Reizner <razrfalcon@gmail.com>",
+  "خالد حسني (Khaled Hosny) <khaled@aliftype.com>",
 ]
 license = "MIT"
 edition = "2024"
@@ -41,4 +41,4 @@ lto = true
 generation = false
 
 [package.metadata.capi.install.include]
-asset = [{ from="ttfparser.h" }]
+asset = [{ from = "ttfparser.h" }]

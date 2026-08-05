@@ -1,10 +1,10 @@
 //! A [PostScript Table](
 //! https://docs.microsoft.com/en-us/typography/opentype/spec/post) implementation.
 
-use crate::parser::{Fixed, LazyArray16, Stream};
 #[cfg(feature = "glyph-names")]
 use crate::GlyphId;
 use crate::LineMetrics;
+use crate::parser::{Fixed, LazyArray16, Stream};
 
 const ITALIC_ANGLE_OFFSET: usize = 4;
 const UNDERLINE_POSITION_OFFSET: usize = 8;

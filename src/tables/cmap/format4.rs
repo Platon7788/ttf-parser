@@ -1,7 +1,7 @@
 use core::convert::TryFrom;
 
-use crate::parser::{LazyArray16, Stream};
 use crate::GlyphId;
+use crate::parser::{LazyArray16, Stream};
 
 /// A [format 4](https://docs.microsoft.com/en-us/typography/opentype/spec/cmap#format-4-segment-mapping-to-delta-values)
 /// subtable.

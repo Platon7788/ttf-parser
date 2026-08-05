@@ -2,10 +2,10 @@
 name = "ttf-parser"
 version = "0.25.1"
 authors = [
-    "Caleb Maclennan <caleb@alerque.com>",
-    "Laurenz Stampfl <laurenz.stampfl@gmail.com>",
-    "Yevhenii Reizner <razrfalcon@gmail.com>",
-    "خالد حسني (Khaled Hosny) <khaled@aliftype.com>"
+  "Caleb Maclennan <caleb@alerque.com>",
+  "Laurenz Stampfl <laurenz.stampfl@gmail.com>",
+  "Yevhenii Reizner <razrfalcon@gmail.com>",
+  "خالد حسني (Khaled Hosny) <khaled@aliftype.com>",
 ]
 keywords = ["ttf", "truetype", "opentype"]
 categories = ["parser-implementations"]

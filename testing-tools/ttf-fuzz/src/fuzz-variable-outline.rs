@@ -4,7 +4,10 @@ extern crate afl;
 fn main() {
     afl::fuzz!(|data: &[u8]| {
         if let Some(mut face) = ttf_parser::Face::parse(data, 0) {
-            if face.set_variation(ttf_parser::Tag::from_bytes(b"wght"), 500.0).is_some() {
+            if face
+                .set_variation(ttf_parser::Tag::from_bytes(b"wght"), 500.0)
+                .is_some()
+            {
                 for id in 0..face.number_of_glyphs() {
                     let _ = face.outline_glyph(ttf_parser::GlyphId(id), &mut Builder(0));
                 }
@@ -12,7 +15,6 @@ fn main() {
         }
     });
 }
-
 
 struct Builder(usize);
 

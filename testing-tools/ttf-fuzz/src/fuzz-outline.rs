@@ -11,7 +11,6 @@ fn main() {
     });
 }
 
-
 struct Builder(usize);
 
 impl ttf_parser::OutlineBuilder for Builder {

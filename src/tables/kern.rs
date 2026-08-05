@@ -14,10 +14,10 @@ a kerning algorithm manually.
 But we still try to keep the API as high-level as possible.
 */
 
+use crate::GlyphId;
 #[cfg(feature = "apple-layout")]
 use crate::aat;
 use crate::parser::{FromData, LazyArray16, NumFrom, Offset, Offset16, Stream};
-use crate::GlyphId;
 
 #[derive(Clone, Copy, Debug)]
 struct OTCoverage(u8);
@@ -454,7 +454,7 @@ impl<'a> Table<'a> {
             }
         } else {
             s.skip::<u16>(); // Skip the second part of u32 version.
-                             // Note that AAT stores the number of tables as u32 and not as u16.
+            // Note that AAT stores the number of tables as u32 and not as u16.
             let count = s.read::<u32>()?;
             Subtables {
                 is_aat: true,

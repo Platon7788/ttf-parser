@@ -6,12 +6,12 @@
 
 use core::convert::TryFrom;
 
+use crate::GlyphId;
 use crate::opentype_layout::ChainedContextLookup;
 use crate::opentype_layout::{Class, ClassDefinition, ContextLookup, Coverage, LookupSubtable};
 use crate::parser::{
     FromData, FromSlice, LazyArray16, LazyArray32, NumFrom, Offset, Offset16, Stream,
 };
-use crate::GlyphId;
 
 /// A [Device Table](
 /// https://docs.microsoft.com/en-us/typography/opentype/spec/chapter2#devVarIdxTbls)

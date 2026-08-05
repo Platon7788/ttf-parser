@@ -3,8 +3,8 @@
 
 use core::num::NonZeroU16;
 
-use crate::parser::{FromData, LazyArray16, Stream};
 use crate::GlyphId;
+use crate::parser::{FromData, LazyArray16, Stream};
 
 /// Horizontal/Vertical Metrics.
 #[derive(Clone, Copy, Debug)]

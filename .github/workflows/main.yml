@@ -15,72 +15,72 @@ jobs:
           - 1.88.0
           - stable
     steps:
-    - name: Checkout
-      uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
 
-    - name: Install toolchain
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ matrix.rust }}
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
 
-    # The c-api and benches crates are outside the root package, so each needs
-    # its own cache entry.
-    - name: Cache
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: |
-          . -> target
-          c-api -> target
-          benches -> target
+      # The c-api and benches crates are outside the root package, so each needs
+      # its own cache entry.
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            c-api -> target
+            benches -> target
 
-    - name: Build with no default features
-      run: cargo build --no-default-features --features=no-std-float
+      - name: Build with no default features
+        run: cargo build --no-default-features --features=no-std-float
 
-    - name: Build with std
-      run: cargo build --no-default-features --features=std
+      - name: Build with std
+        run: cargo build --no-default-features --features=std
 
-    # No other permutation builds `alloc` without `std`, and `--all-features` enables
-    # `std` too, so without this the alloc-only paths in `name.rs` and `gvar.rs` are
-    # never compiled. `no-std-float` is required to satisfy the float guard.
-    - name: Build with alloc and no std
-      run: cargo build --no-default-features --features=alloc,no-std-float,variable-fonts,gvar-alloc
+      # No other permutation builds `alloc` without `std`, and `--all-features` enables
+      # `std` too, so without this the alloc-only paths in `name.rs` and `gvar.rs` are
+      # never compiled. `no-std-float` is required to satisfy the float guard.
+      - name: Build with alloc and no std
+        run: cargo build --no-default-features --features=alloc,no-std-float,variable-fonts,gvar-alloc
 
-    - name: Build with variable-fonts
-      run: cargo build --no-default-features --features=variable-fonts,no-std-float
+      - name: Build with variable-fonts
+        run: cargo build --no-default-features --features=variable-fonts,no-std-float
 
-    - name: Build with all features
-      run: cargo build --all-features
+      - name: Build with all features
+        run: cargo build --all-features
 
-    - name: Run tests
-      run: cargo test
+      - name: Run tests
+        run: cargo test
 
-    # debug_assert! is compiled out in release, so debug and release can disagree about
-    # whether malformed input panics or is rejected cleanly. Running only debug hid a
-    # failing test on main for months.
-    - name: Run tests (release)
-      run: cargo test --release
+      # debug_assert! is compiled out in release, so debug and release can disagree about
+      # whether malformed input panics or is rejected cleanly. Running only debug hid a
+      # failing test on main for months.
+      - name: Run tests (release)
+        run: cargo test --release
 
-    - name: Build C API
-      working-directory: c-api
-      run: cargo build --no-default-features
+      - name: Build C API
+        working-directory: c-api
+        run: cargo build --no-default-features
 
-    - name: Build C API with variable-fonts
-      working-directory: c-api
-      run: cargo build --no-default-features --features=variable-fonts
+      - name: Build C API with variable-fonts
+        working-directory: c-api
+        run: cargo build --no-default-features --features=variable-fonts
 
-    # The root package is not a workspace, so a root `cargo test` never reaches c-api.
-    # Without this step the crate's Rust tests are compiled by nothing and run by nothing.
-    - name: Test C API (Rust)
-      working-directory: c-api
-      run: cargo test
+      # The root package is not a workspace, so a root `cargo test` never reaches c-api.
+      # Without this step the crate's Rust tests are compiled by nothing and run by nothing.
+      - name: Test C API (Rust)
+        working-directory: c-api
+        run: cargo test
 
-    - name: Test C API
-      working-directory: c-api
-      run: |
-        cargo build
-        gcc test.c -o test -L./target/debug/ -lttfparser -Werror -fsanitize=address
-        env LD_LIBRARY_PATH=./target/debug/ ./test
+      - name: Test C API
+        working-directory: c-api
+        run: |
+          cargo build
+          gcc test.c -o test -L./target/debug/ -lttfparser -Werror -fsanitize=address
+          env LD_LIBRARY_PATH=./target/debug/ ./test
 
-    - name: Build benches
-      working-directory: benches
-      run: cargo bench dummy # `cargo build` will not actually build it
+      - name: Build benches
+        working-directory: benches
+        run: cargo bench dummy # `cargo build` will not actually build it

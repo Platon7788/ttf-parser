@@ -1,7 +1,7 @@
-use super::charset::Charset;
 use super::StringId;
-use crate::parser::{FromData, LazyArray16, Stream};
+use super::charset::Charset;
 use crate::GlyphId;
+use crate::parser::{FromData, LazyArray16, Stream};
 
 /// The Standard Encoding as defined in the Adobe Technical Note #5176 Appendix B.
 #[rustfmt::skip]

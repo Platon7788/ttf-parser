@@ -4,10 +4,10 @@
 #[cfg(feature = "variable-fonts")]
 use super::FeatureVariations;
 use super::LookupList;
+use crate::Tag;
 #[cfg(feature = "variable-fonts")]
 use crate::parser::Offset32;
 use crate::parser::{FromData, LazyArray16, Offset, Offset16, Stream};
-use crate::Tag;
 
 /// A [Layout Table](https://docs.microsoft.com/en-us/typography/opentype/spec/chapter2#table-organization).
 #[derive(Clone, Copy, Debug)]

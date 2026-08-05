@@ -9,7 +9,7 @@ use core::num::NonZeroU16;
 
 use crate::kern::KerningPair;
 use crate::parser::{FromData, LazyArray32, NumFrom, Offset, Offset32, Stream};
-use crate::{aat, GlyphId};
+use crate::{GlyphId, aat};
 
 const HEADER_SIZE: usize = 12;
 
@@ -255,7 +255,7 @@ impl<'a> Subtable6<'a> {
         let flags = s.read::<u32>()?;
         s.skip::<u16>(); // row_count
         s.skip::<u16>(); // col_count
-                         // All offsets are from the start of the subtable.
+        // All offsets are from the start of the subtable.
         let row_index_table_offset = s.read::<Offset32>()?.to_usize().checked_sub(HEADER_SIZE)?;
         let column_index_table_offset =
             s.read::<Offset32>()?.to_usize().checked_sub(HEADER_SIZE)?;

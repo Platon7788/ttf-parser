@@ -1,14 +1,14 @@
 //! A [Glyph Definition Table](
 //! https://docs.microsoft.com/en-us/typography/opentype/spec/gdef) implementation.
 
+use crate::GlyphId;
 use crate::opentype_layout::{Class, ClassDefinition, Coverage};
 use crate::parser::{FromSlice, LazyArray16, Offset, Offset16, Offset32, Stream};
-use crate::GlyphId;
 
 #[cfg(feature = "variable-fonts")]
-use crate::var_store::ItemVariationStore;
-#[cfg(feature = "variable-fonts")]
 use crate::NormalizedCoordinate;
+#[cfg(feature = "variable-fonts")]
+use crate::var_store::ItemVariationStore;
 
 /// A [glyph class](https://docs.microsoft.com/en-us/typography/opentype/spec/gdef#glyph-class-definition-table).
 #[allow(missing_docs)]

@@ -6,8 +6,8 @@ related types.
 
 use core::num::NonZeroU16;
 
-use crate::parser::{FromData, LazyArray16, NumFrom, Offset, Offset16, Offset32, Stream};
 use crate::GlyphId;
+use crate::parser::{FromData, LazyArray16, NumFrom, Offset, Offset16, Offset32, Stream};
 
 /// Predefined states.
 pub mod state {

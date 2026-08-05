@@ -4,9 +4,9 @@
 // A heavily modified port of https://github.com/harfbuzz/rustybuzz implementation
 // originally written by https://github.com/laurmaedje
 
+use crate::GlyphId;
 use crate::opentype_layout::{ChainedContextLookup, ContextLookup, Coverage, LookupSubtable};
 use crate::parser::{FromSlice, LazyArray16, LazyOffsetArray16, Stream};
-use crate::GlyphId;
 
 /// A [Single Substitution Subtable](https://docs.microsoft.com/en-us/typography/opentype/spec/gsub#SS).
 #[allow(missing_docs)]

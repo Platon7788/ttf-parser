@@ -1,11 +1,11 @@
 //! A [Math Table](https://docs.microsoft.com/en-us/typography/opentype/spec/math) implementation.
 
+use crate::GlyphId;
 use crate::gpos::Device;
 use crate::opentype_layout::Coverage;
 use crate::parser::{
     FromData, FromSlice, LazyArray16, LazyOffsetArray16, Offset, Offset16, Stream,
 };
-use crate::GlyphId;
 
 /// A [Math Value](https://docs.microsoft.com/en-us/typography/opentype/spec/math#mathvaluerecord)
 /// with optional device corrections.

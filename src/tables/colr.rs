@@ -5,13 +5,13 @@
 // [skrifa](https://github.com/googlefonts/fontations/tree/main/skrifa).
 
 #[cfg(feature = "variable-fonts")]
+use crate::NormalizedCoordinate;
+#[cfg(feature = "variable-fonts")]
 use crate::delta_set::DeltaSetIndexMap;
-use crate::parser::{FromData, LazyArray16, Offset, Offset24, Offset32, Stream, F2DOT14};
+use crate::parser::{F2DOT14, FromData, LazyArray16, Offset, Offset24, Offset32, Stream};
 #[cfg(feature = "variable-fonts")]
 use crate::var_store::ItemVariationStore;
-#[cfg(feature = "variable-fonts")]
-use crate::NormalizedCoordinate;
-use crate::{cpal, Fixed, LazyArray32, RectF, Transform};
+use crate::{Fixed, LazyArray32, RectF, Transform, cpal};
 use crate::{GlyphId, RgbaColor};
 
 /// A [base glyph](

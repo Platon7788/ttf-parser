@@ -1,6 +1,6 @@
 use super::StringId;
-use crate::parser::{FromData, LazyArray16, Stream};
 use crate::GlyphId;
+use crate::parser::{FromData, LazyArray16, Stream};
 use core::num::NonZeroU16;
 
 /// The Expert Encoding conversion as defined in the Adobe Technical Note #5176 Appendix C.

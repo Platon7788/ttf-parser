@@ -3,8 +3,8 @@
 
 use core::num::NonZeroU16;
 
-use crate::parser::{LazyArray16, NumFrom, Stream, F2DOT14};
-use crate::{loca, GlyphId, OutlineBuilder, Rect, RectF, Transform};
+use crate::parser::{F2DOT14, LazyArray16, NumFrom, Stream};
+use crate::{GlyphId, OutlineBuilder, Rect, RectF, Transform, loca};
 
 pub(crate) struct Builder<'a> {
     pub builder: &'a mut dyn OutlineBuilder,
@@ -487,7 +487,14 @@ fn outline_impl(
                 if let Some(glyph_data) = glyf_table.get(range) {
                     let transform = Transform::combine(builder.transform, comp.transform);
                     let mut b = Builder::new(transform, builder.bbox, builder.builder);
-                    outline_impl(loca_table, glyf_table, glyph_data, depth + 1, budget, &mut b)?;
+                    outline_impl(
+                        loca_table,
+                        glyf_table,
+                        glyph_data,
+                        depth + 1,
+                        budget,
+                        &mut b,
+                    )?;
 
                     // Take updated bbox.
                     builder.bbox = b.bbox;
@@ -620,7 +627,14 @@ impl<'a> Table<'a> {
         let mut b = Builder::new(Transform::default(), RectF::new(), builder);
         let glyph_data = self.get(glyph_id)?;
         let mut budget = MAX_COMPONENT_VISITS;
-        outline_impl(self.loca_table, self.data, glyph_data, 0, &mut budget, &mut b)?
+        outline_impl(
+            self.loca_table,
+            self.data,
+            glyph_data,
+            0,
+            &mut budget,
+            &mut b,
+        )?
     }
 
     /// The bounding box of the glyph. Unlike the `outline` method, this method does not

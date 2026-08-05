@@ -1,8 +1,8 @@
 //! A [Style Attributes Table](https://docs.microsoft.com/en-us/typography/opentype/spec/stat) implementation.
 
 use crate::{
-    parser::{Offset, Offset16, Offset32, Stream},
     Fixed, FromData, LazyArray16, Tag,
+    parser::{Offset, Offset16, Offset32, Stream},
 };
 
 /// Axis-value pairing for [`AxisValueSubtableFormat4`].
