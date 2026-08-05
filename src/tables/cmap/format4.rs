@@ -101,7 +101,7 @@ impl<'a> Subtable4<'a> {
     }
 
     /// Iterate over each codepoint defined in this table.
-    pub fn codepoints_iter(&'a self) -> impl Iterator<Item = u32> + 'a {
+    pub fn codepoints_iter(self) -> impl Iterator<Item = u32> + 'a {
         self.start_codes
             .into_iter()
             .zip(self.end_codes)

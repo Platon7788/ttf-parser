@@ -66,7 +66,7 @@ impl<'a> Subtable12<'a> {
     }
 
     /// Iterate over each codepoint defined in this table.
-    pub fn codepoints_iter(&'a self) -> impl Iterator<Item = u32> + 'a {
+    pub fn codepoints_iter(self) -> impl Iterator<Item = u32> + 'a {
         self.groups
             .into_iter()
             .flat_map(|group| group.start_char_code..=group.end_char_code)
