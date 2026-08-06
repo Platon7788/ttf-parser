@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [0.26.0] - 2026-08-06
 ### Added
 - `alloc` build feature, for `no_std` builds with an allocator.
   `Name::to_string` and the `gvar-alloc` heap spill no longer require `std`.
