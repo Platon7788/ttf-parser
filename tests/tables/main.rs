@@ -8,6 +8,8 @@
 #[rustfmt::skip] mod cmap;
 #[rustfmt::skip] mod colr;
 #[rustfmt::skip] mod feat;
+#[cfg(feature = "variable-fonts")]
+#[rustfmt::skip] mod fvar;
 #[rustfmt::skip] mod glyf;
 #[rustfmt::skip] mod head;
 #[rustfmt::skip] mod hmtx;

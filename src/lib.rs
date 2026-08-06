@@ -2371,7 +2371,11 @@ impl<'a> Face<'a> {
             return None;
         }
 
-        if usize::from(self.variation_axes().len()) >= MAX_VAR_COORDS {
+        // Bounds `self.coordinates.data[i]` below, where `i` runs over every axis. A face with
+        // more axes than the array holds is rejected outright rather than partially applied.
+        // The comparison is inclusive because `MAX_VAR_COORDS` axes still fit: `Face::parse`
+        // clamps the coordinate count with `.min(MAX_VAR_COORDS)`, which is inclusive too. ~keep
+        if usize::from(self.variation_axes().len()) > MAX_VAR_COORDS {
             return None;
         }
 

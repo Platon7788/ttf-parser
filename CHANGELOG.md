@@ -101,6 +101,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   unsupported point-matching component left the stream positioned mid-arguments and every
   subsequent read in that glyph decoded from the wrong offset. Point matching itself remains
   unimplemented, but it no longer corrupts the components that follow it.
+- (`fvar`) `Face::set_variation` works on a face with exactly 64 axes. Its guard rejected an
+  axis count equal to the coordinate-storage limit, while every other site clamps to that
+  limit inclusively, so such a face could not be varied on any axis at all.
 
 ## [0.25.1] - 2024-11-29
 ### Changed
