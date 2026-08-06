@@ -38,10 +38,6 @@ struct PointAndDelta {
 
 // This structure will be used by the `VariationTuples` stack buffer,
 // so it has to be as small as possible.
-// repr(C) pins the field order. The size is asserted to be <= 80 below and is currently
-// exactly 80, so a rustc change to the default layout would abort for every variable
-// font; measured identical (80) under both reprs. ~keep
-#[repr(C)]
 #[derive(Clone, Copy, Default)]
 struct VariationTuple<'a> {
     set_points: Option<SetPointsIter<'a>>,
