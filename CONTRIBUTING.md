@@ -183,6 +183,29 @@ Most open work on this crate is hardening against malformed input. If you are ad
   A counter that persists makes the API start failing spuriously after enough calls.
 - **Charge the budget before any early return**, or an attacker gets the cheap paths free.
 
+## Commit messages
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```text
+type(scope): subject
+
+Body explaining why, if the subject is not self-evident.
+```
+
+- **Types**: `fix`, `feat`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`.
+  Given the crate is in maintenance mode, nearly everything is `fix`, `docs`, `test` or `chore`.
+- **Scope** is the table or module the change belongs to, matching how the changelog groups
+  entries: `fix(cmap):`, `fix(CFF2):`, `fix(gvar):`. Omit it for changes that span the crate.
+- **Subject** is imperative mood, no trailing period, first line under 72 characters.
+- The body explains *why*, not what — the diff already says what. Reference an issue by number
+  when one exists.
+- A breaking change gets a `!` after the type (`feat(cff)!:`) and a note in the changelog under
+  `### Changed`.
+
+History before 0.25.1 predates this convention and is not being rewritten, so `git log` mixes
+both styles. New commits use the convention.
+
 ## Pull requests
 
 - Add a `## [Unreleased]` entry to `CHANGELOG.md`. Contributed changes are credited in the
