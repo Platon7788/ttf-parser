@@ -6,6 +6,14 @@
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88+-orange.svg)](https://www.rust-lang.org)
 ![Unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)
 
+> **Maintenance mode.** This crate is maintained for correctness and security, not for new
+> features. Bug reports and fixes are welcome and will be reviewed, but the table coverage is
+> unlikely to grow much further.
+>
+> **For new projects, we recommend [fontations](https://github.com/googlefonts/fontations)**
+> (`read-fonts` and `skrifa`), which is actively developed by Google Fonts, has broader table
+> support, and is the direction the Rust font ecosystem is moving.
+
 A high-level, safe, zero-allocation font parser for
 [TrueType](https://docs.microsoft.com/en-us/typography/truetype/),
 [OpenType](https://docs.microsoft.com/en-us/typography/opentype/spec/), and
@@ -44,6 +52,10 @@ Requires Rust 1.88 and uses edition 2024.
 - Most of numeric casts are checked.
 
 ### Alternatives
+
+[fontations](https://github.com/googlefonts/fontations) is the recommended alternative for new
+Rust projects, for the reasons in the note at the top of this file. It is not in the table below,
+which predates it and compares against the two C libraries.
 
 It's very hard to compare different libraries, so we are using table-based comparison.
 There are roughly three types of TrueType tables:
