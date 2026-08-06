@@ -280,8 +280,6 @@ fn parse_variation_tuples<'a>(
     mut serialized_s: Stream<'a>,
     tuples: &mut VariationTuples<'a>,
 ) -> Option<()> {
-    debug_assert!(core::mem::size_of::<VariationTuple>() <= 80);
-
     // `TupleVariationHeader` has a variable size, so we cannot use a `LazyArray`.
     for _ in 0..count {
         let header = parse_tuple_variation_header(coordinates, shared_tuple_records, &mut main_s)?;
@@ -1008,8 +1006,6 @@ mod packed_deltas {
     impl<'a> PackedDeltasIter<'a> {
         /// `count` indicates a number of delta pairs.
         pub fn new(scalar: f32, count: u16, data: &'a [u8]) -> Self {
-            debug_assert!(core::mem::size_of::<PackedDeltasIter>() <= 32);
-
             let mut iter = PackedDeltasIter {
                 data,
                 total_count: count,
@@ -1943,4 +1939,36 @@ fn parse_variation_data<'a>(
         serialized_stream,
         tuples,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // These sizes are a stack-footprint budget, not a correctness requirement: 32
+    // `VariationTuple`s live in the `VariationTuples::Stack` buffer, and `outline_var_impl`
+    // keeps one such buffer live per composite-glyph recursion level, so a byte added here
+    // is paid 32 times over, per frame. The bounds exist to make that growth deliberate.
+    //
+    // They belong in this crate's own test suite and not in the parsing path. Rust does not
+    // guarantee the layout of a `repr(Rust)` type, and `-Zrandomize-layout` deliberately
+    // violates these bounds — measured at 88, 88, 88, 96 and 104 bytes for `VariationTuple`
+    // across five seeds. As `debug_assert!`s they therefore aborted every debug build of
+    // every downstream consumer compiled with that flag, over a budget those consumers
+    // cannot influence and a bound the language never promised (issue #205). `#[repr(C)]`
+    // is not an escape: two fields are `Option`s, whose layout this crate cannot pin, and
+    // pinning the outer struct alone was measured to change nothing.
+    //
+    // Consequently these two tests do not hold under `-Zrandomize-layout`. That is the
+    // intended trade: a failure there is a local, informative test result for whoever set
+    // the flag, rather than a crash in an unrelated application. ~keep
+    #[test]
+    fn variation_tuple_stays_within_its_stack_budget() {
+        assert!(core::mem::size_of::<VariationTuple>() <= 80);
+    }
+
+    #[test]
+    fn packed_deltas_iter_stays_within_its_stack_budget() {
+        assert!(core::mem::size_of::<PackedDeltasIter>() <= 32);
+    }
 }

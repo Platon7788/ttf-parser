@@ -11,6 +11,8 @@
 #[cfg(feature = "variable-fonts")]
 #[rustfmt::skip] mod fvar;
 #[rustfmt::skip] mod glyf;
+#[cfg(feature = "variable-fonts")]
+#[rustfmt::skip] mod gvar;
 #[rustfmt::skip] mod head;
 #[rustfmt::skip] mod hmtx;
 #[rustfmt::skip] mod loca;

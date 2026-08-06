@@ -104,6 +104,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - (`fvar`) `Face::set_variation` works on a face with exactly 64 axes. Its guard rejected an
   axis count equal to the coordinate-storage limit, while every other site clamps to that
   limit inclusively, so such a face could not be varied on any axis at all.
+- (`gvar`) Outlining a variable glyph no longer aborts under `-Zrandomize-layout`.
+  Two `debug_assert!`s bounded the size of internal iterator structs, but Rust does not
+  guarantee `repr(Rust)` layout and randomization pushed them past the bound, so every debug
+  build of every application using the flag panicked on a budget it could not influence.
+  The bounds are now checked in this crate's own test suite instead.
 
 ## [0.25.1] - 2024-11-29
 ### Changed
