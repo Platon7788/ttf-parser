@@ -9,6 +9,7 @@
 #[rustfmt::skip] mod colr;
 #[rustfmt::skip] mod feat;
 #[rustfmt::skip] mod glyf;
+#[rustfmt::skip] mod head;
 #[rustfmt::skip] mod hmtx;
 #[rustfmt::skip] mod loca;
 #[rustfmt::skip] mod maxp;

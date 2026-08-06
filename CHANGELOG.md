@@ -32,6 +32,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `CFFError` is `#[non_exhaustive]` now, so that future hardening limits can add variants
   without breaking downstream code. Together with the new `SubroutineCallLimitReached`
   variant, this does break existing exhaustive matches on it.
+- `Face::is_italic` no longer treats a nonzero `post.italicAngle` as italic. It now consults
+  the two flags the spec treats as authoritative: `OS/2.fsSelection` and `head.macStyle` bit 1,
+  the latter of which was not parsed at all before. The angle is a slant value that the spec
+  only says "should" be 0 for upright faces, and real fonts violate that while rendering
+  perfectly upright, so it produced false positives.
+  This is a behavioural change and will not produce a compile error.
+- (`head`) `head::Table` has a new public `is_italic` field, which breaks exhaustive
+  struct destructuring of it.
 - Bump MSRV to 1.88 and move to edition 2024.
 - Documented the `Face::style` fallback to `Style::Normal` when `OS/2` is absent.
   Thanks to [dereified](https://github.com/dereified).
@@ -77,6 +85,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - (C API) `ttfp_get_glyph_name` rejects glyph names longer than the documented 256-byte
   buffer instead of panicking across the `extern "C"` boundary, which is a non-unwinding abort.
   Thanks to [scadastrangelove](https://github.com/scadastrangelove).
+- `Stream::read_array32` rejects an oversized element count instead of tripping the
+  `read_bytes` assert. The count is a raw `u32` from the font, so `count * T::SIZE` can exceed
+  the buffer by orders of magnitude; that is malformed input rather than the caller logic error
+  the assert is meant to catch, so it aborted in debug while release correctly returned
+  `MalformedFont`. This also fixes the test failure on 32-bit targets.
+- (`glyf`) Composite components using point matching no longer desync the parser.
+  The two component arguments were consumed only on the `ARGS_ARE_XY_VALUES` path, so an
+  unsupported point-matching component left the stream positioned mid-arguments and every
+  subsequent read in that glyph decoded from the wrong offset. Point matching itself remains
+  unimplemented, but it no longer corrupts the components that follow it.
 
 ## [0.25.1] - 2024-11-29
 ### Changed

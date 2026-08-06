@@ -1451,10 +1451,18 @@ impl<'a> Face<'a> {
     }
 
     /// Checks that face is marked as *Italic*.
+    ///
+    /// Consults `OS/2.fsSelection`'s ITALIC bit (and, for OS/2 version 4+, its
+    /// OBLIQUE bit — see [`Face::style()`]) and `head.macStyle`'s Italic bit
+    /// (bit 1). These are the two italic flags the OpenType spec treats as
+    /// authoritative.
     #[inline]
     pub fn is_italic(&self) -> bool {
-        // A face can have a Normal style and a non-zero italic angle, which also makes it italic.
-        self.style() == Style::Italic || self.italic_angle() != 0.0
+        // `post.italicAngle` is intentionally not consulted: the spec says it
+        // "should" be 0 for upright fonts, but real fonts violate this while
+        // remaining visually regular (see issue #202), so treating a nonzero
+        // angle as italic causes false positives. ~keep
+        self.style() == Style::Italic || self.tables.head.is_italic
     }
 
     /// Checks that face is marked as *Bold*.

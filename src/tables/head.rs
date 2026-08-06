@@ -25,6 +25,8 @@ pub struct Table {
     /// An index format used by the [Index to Location Table](
     /// https://docs.microsoft.com/en-us/typography/opentype/spec/loca).
     pub index_to_location_format: IndexToLocationFormat,
+    /// Whether the face is marked as *Italic* via `macStyle`'s Italic bit (bit 1).
+    pub is_italic: bool,
 }
 
 impl Table {
@@ -49,7 +51,8 @@ impl Table {
         let y_min = s.read::<i16>()?;
         let x_max = s.read::<i16>()?;
         let y_max = s.read::<i16>()?;
-        s.skip::<u16>(); // mac style
+        let mac_style = s.read::<u16>()?;
+        let is_italic = mac_style & (1 << 1) != 0; // bit 1: italic
         s.skip::<u16>(); // lowest PPEM
         s.skip::<i16>(); // font direction hint
         let index_to_location_format = s.read::<u16>()?;
@@ -73,6 +76,7 @@ impl Table {
                 y_max,
             },
             index_to_location_format,
+            is_italic,
         })
     }
 }
