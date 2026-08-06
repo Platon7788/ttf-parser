@@ -6,9 +6,11 @@
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88+-orange.svg)](https://www.rust-lang.org)
 ![Unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)
 
-> **Maintenance mode.** This crate is maintained for correctness and security, not for new
-> features. Bug reports and fixes are welcome and will be reviewed, but the table coverage is
-> unlikely to grow much further.
+> **This crate is in maintenance mode. Bug fixes only — no new features.**
+>
+> Bug reports and fixes are welcome and will be reviewed promptly. Correctness, panics and
+> security issues are in scope. New table support, new API surface and performance work are
+> not, and feature requests will be closed.
 >
 > **For new projects, we recommend [fontations](https://github.com/googlefonts/fontations)**
 > (`read-fonts` and `skrifa`), which is actively developed by Google Fonts, has broader table

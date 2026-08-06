@@ -4,6 +4,28 @@
 TrueType, OpenType and AAT fonts. It sits underneath text rendering and it parses untrusted
 input, so contributions are held to that standard.
 
+## Scope
+
+**The crate is in maintenance mode: bug fixes only.**
+
+In scope, and welcome:
+
+- Incorrect parsing, wrong values, glyphs that fail to outline
+- Panics, aborts and unbounded work on malformed input
+- Fixes to existing table support
+
+Out of scope, and will be closed:
+
+- New table support and new public API
+- Performance work
+- Refactors that change the API surface
+
+If you need broader coverage, [fontations](https://github.com/googlefonts/fontations) is
+actively developed and is what we recommend for new projects.
+
+A bug report does not need to be phrased as a fix — if a font renders wrong, say so and we
+will work out whether the cause is in scope.
+
 ## Repository layout
 
 The repository root is **not** a Cargo workspace. It holds four independent crates:
