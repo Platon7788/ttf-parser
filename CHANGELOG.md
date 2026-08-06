@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   Thanks to [scadastrangelove](https://github.com/scadastrangelove).
 - `core::error::Error` is implemented for `FaceParsingError` in `no_std` builds now.
   Thanks to [iriswebb](https://github.com/iriswebb).
+- (`OS/2`) `os2::Table::panose`, returning the ten raw PANOSE digits plus `FamilyType`
+  and `is_bold`/`is_italic`/`is_monospaced`. The digits are public because their meaning
+  depends on the family type and PANOSE defines more values than this crate models.
+  `Face::is_bold`, `Face::is_italic` and `Face::is_monospaced` deliberately do not consult
+  it: PANOSE is a design classification, not a style flag.
+  Thanks to [inferiorhumanorgans](https://github.com/inferiorhumanorgans).
 
 ### Changed
 - (`loca`) `loca::Table::len` returns `u32` instead of `u16`, and the `Table::Short`/`Table::Long`
