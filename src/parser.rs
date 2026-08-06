@@ -739,7 +739,9 @@ impl<'a> Stream<'a> {
     /// Advances by the specified `len` and checks for bounds.
     #[inline]
     pub fn advance_checked(&mut self, len: usize) -> Option<()> {
-        if self.offset + len <= self.data.len() {
+        // Compared against the remaining length rather than `self.offset + len`, which
+        // overflows on 32-bit for a font-derived `len`. See `read_bytes`. ~keep
+        if len <= self.data.len().checked_sub(self.offset)? {
             self.advance(len);
             Some(())
         } else {
@@ -765,10 +767,20 @@ impl<'a> Stream<'a> {
     /// Reads N bytes from the stream.
     #[inline]
     pub fn read_bytes(&mut self, len: usize) -> Option<&'a [u8]> {
-        // An integer overflow here on 32bit systems is almost guarantee to be caused
-        // by an incorrect parsing logic from the caller side.
-        // Simply using `checked_add` here would silently swallow errors, which is not what we want.
-        debug_assert!(self.offset as u64 + len as u64 <= u32::MAX as u64);
+        // Bound `len` against the buffer before adding it to the offset, not after.
+        //
+        // On a 32-bit target `self.offset + len` overflows for a `len` taken from font data,
+        // and many callers derive one: a `CFF` INDEX count, a `cbdt` PNG length and a `GPOS`
+        // class-pair product all reach here unbounded. This used to be a `debug_assert!` on
+        // the sum, on the theory that only a caller bug could produce it — but malformed
+        // input produces it just as readily, and the assert could not tell the two apart, so
+        // debug builds aborted on fonts that release builds rejected cleanly (see issue #240).
+        //
+        // Checking first makes the addition sound on every target, and a genuine caller bug
+        // now surfaces as a parse failure like any other. ~keep
+        if len > self.data.len().checked_sub(self.offset)? {
+            return None;
+        }
 
         let v = self.data.get(self.offset..self.offset + len)?;
         self.advance(len);
@@ -785,14 +797,10 @@ impl<'a> Stream<'a> {
     /// Reads the next `count` types as a slice.
     #[inline]
     pub fn read_array32<T: FromData>(&mut self, count: u32) -> Option<LazyArray32<'a, T>> {
-        // `count` is a raw u32 from the font, so `count * T::SIZE` can exceed the buffer by
-        // orders of magnitude. That is malformed input, not the caller logic error that
-        // `read_bytes` asserts on, so reject it against the real buffer length first. ~keep
+        // `count` is a raw u32 from the font, so on a 32-bit target `count * T::SIZE` can
+        // overflow `usize` before `read_bytes` ever sees it. The resulting length is bounded
+        // against the buffer there. ~keep
         let len = usize::num_from(count).checked_mul(T::SIZE)?;
-        if len > self.data.len().checked_sub(self.offset)? {
-            return None;
-        }
-
         self.read_bytes(len).map(LazyArray32::new)
     }
 

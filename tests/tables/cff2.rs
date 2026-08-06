@@ -486,3 +486,35 @@ fn local_subroutine_chain_within_budget_outlines() {
     assert_eq!(path, "M 100 0 L 150 50 ");
     assert_eq!(result.unwrap(), rect(100, 0, 150, 50));
 }
+
+// Regression tests for https://github.com/harfbuzz/ttf-parser/issues/240. A CFF2 INDEX count
+// is a raw u32, so `(count + 1) * offSize` reaches `Stream::read_bytes` orders of magnitude
+// larger than the buffer. That used to trip a `debug_assert!` on `offset + len`, so a debug
+// build aborted on input a release build rejected cleanly.
+fn cff2_with_global_subr_index(count: u32, offset_size: u8) -> Vec<u8> {
+    let mut top_dict = Vec::new();
+    top_dict.extend_from_slice(&dict_int(100));
+    top_dict.push(top_dict_operator::CHAR_STRINGS_OFFSET);
+    top_dict.extend_from_slice(&dict_int(100));
+    top_dict.extend_from_slice(&top_dict_operator::FONT_DICT_INDEX_OFFSET);
+
+    let mut data = vec![2, 0, 5]; // majorVersion, minorVersion, headerSize
+    data.extend_from_slice(&(top_dict.len() as u16).to_be_bytes());
+    data.extend_from_slice(&top_dict);
+    data.extend_from_slice(&count.to_be_bytes());
+    data.push(offset_size);
+    data
+}
+
+#[test]
+fn index_count_whose_offset_array_exceeds_the_buffer_is_rejected() {
+    // (0x3FFFFFFE + 1) * 4 == 0xFFFFFFFC, which fits in a u32 but not in the buffer.
+    let data = cff2_with_global_subr_index(0x3FFFFFFE, 4);
+    assert!(cff2::Table::parse(&data).is_none());
+}
+
+#[test]
+fn index_count_whose_offset_array_overflows_a_u32_is_rejected() {
+    let data = cff2_with_global_subr_index(u32::MAX - 1, 4);
+    assert!(cff2::Table::parse(&data).is_none());
+}

@@ -91,11 +91,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - (C API) `ttfp_get_glyph_name` rejects glyph names longer than the documented 256-byte
   buffer instead of panicking across the `extern "C"` boundary, which is a non-unwinding abort.
   Thanks to [scadastrangelove](https://github.com/scadastrangelove).
-- `Stream::read_array32` rejects an oversized element count instead of tripping the
-  `read_bytes` assert. The count is a raw `u32` from the font, so `count * T::SIZE` can exceed
-  the buffer by orders of magnitude; that is malformed input rather than the caller logic error
-  the assert is meant to catch, so it aborted in debug while release correctly returned
-  `MalformedFont`. This also fixes the test failure on 32-bit targets.
 - (`glyf`) Composite components using point matching no longer desync the parser.
   The two component arguments were consumed only on the `ARGS_ARE_XY_VALUES` path, so an
   unsupported point-matching component left the stream positioned mid-arguments and every
@@ -104,6 +99,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - (`fvar`) `Face::set_variation` works on a face with exactly 64 axes. Its guard rejected an
   axis count equal to the coordinate-storage limit, while every other site clamps to that
   limit inclusively, so such a face could not be varied on any axis at all.
+- `Stream::read_bytes` bounds the requested length against the buffer instead of asserting on
+  `offset + len`. The assert was meant to catch caller bugs, but malformed fonts reach it just
+  as easily through a `CFF` INDEX count, a `cbdt` PNG length, a `GPOS` class-pair product and
+  others, so debug builds aborted on input that release builds rejected cleanly — noise for
+  anyone fuzzing a debug build. Checking first also makes the addition sound on 32-bit targets,
+  which the assert never did.
+- (`HVAR`/`VVAR`/`COLR`) A delta-set index map no longer advances past its buffer before
+  reading. `mapCount` is a raw `u32` and the index is scaled by the entry size.
+- (`COLR`) Variation delta indices are added with overflow checking. A `varIndexBase` near
+  `u32::MAX` aborted in debug and wrapped to an unrelated delta index in release.
 - (`CFF2`) Fonts without a `vstore` can outline glyphs. The Top DICT entry is optional per
   spec, but variation scalars were resolved at index 0 before the first operator ran, which
   fails on an absent store — so every glyph of a static CFF2 font returned `None`. Scalars are

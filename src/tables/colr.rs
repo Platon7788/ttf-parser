@@ -1929,9 +1929,13 @@ impl VariationData<'_> {
         let variation_store = self.variation_store.as_ref().unwrap();
 
         for (i, delta) in deltas.iter_mut().enumerate() {
+            // `var_index_base` comes straight from the paint table, so this addition can
+            // overflow: an abort in debug, and a wrap to an unrelated delta index in
+            // release. `0xFFFFFFFF` is already handled above as "no deltas". ~keep
             *delta = self
                 .delta_map
-                .and_then(|d| d.map(var_index_base + i as u32))
+                .zip(var_index_base.checked_add(i as u32))
+                .and_then(|(d, index)| d.map(index))
                 .and_then(|d| variation_store.parse_delta(d.0, d.1, coordinates))
                 .unwrap_or(0.0);
         }
