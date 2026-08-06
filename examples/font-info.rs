@@ -96,6 +96,10 @@ fn main() {
         }
     }
 
+    if let Some(panose) = face.tables().os2.and_then(|os2| os2.panose()) {
+        println!("PANOSE: {:?} {:?}", panose.family_type(), panose.0);
+    }
+
     println!("Elapsed: {}us", now.elapsed().as_micros());
 }
 
