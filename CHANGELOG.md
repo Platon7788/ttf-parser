@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   Thanks to [scadastrangelove](https://github.com/scadastrangelove).
 - `core::error::Error` is implemented for `FaceParsingError` in `no_std` builds now.
   Thanks to [iriswebb](https://github.com/iriswebb).
+- (`CFF`) `cff::Table::parse_with_upem`, which applies the font matrix using the face's
+  units per em. `cff::Table::parse` keeps its original one-argument signature.
+  Thanks to [LaurenzV](https://github.com/LaurenzV).
 - (`OS/2`) `os2::Table::panose`, returning the ten raw PANOSE digits plus `FamilyType`
   and `is_bold`/`is_italic`/`is_monospaced`. The digits are public because their meaning
   depends on the family type and PANOSE defines more values than this crate models.
@@ -46,9 +49,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   This is a behavioural change and will not produce a compile error.
 - (`head`) `head::Table` has a new public `is_italic` field, which breaks exhaustive
   struct destructuring of it.
+- (`COLR`) `push_clip` and `pop_clip` are called when painting v0 glyphs, matching v1.
+  A `Painter` that relied on v0 never clipping will render differently.
+  Thanks to [valadaptive](https://github.com/valadaptive).
 - Bump MSRV to 1.88 and move to edition 2024.
+- Test fonts and development tools are excluded from the published package, which is
+  substantially smaller as a result.
+  Thanks to [weiznich](https://github.com/weiznich).
+- Dependencies are pinned to a minor version rather than an exact one.
+  Thanks to [alerque](https://github.com/alerque).
 - Documented the `Face::style` fallback to `Style::Normal` when `OS/2` is absent.
   Thanks to [dereified](https://github.com/dereified).
+- Documented every field of `RawFaceTables`.
 
 ### Fixed
 - (`CFF`) Bound the total number of subroutine invocations per glyph.
@@ -109,6 +121,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   reading. `mapCount` is a raw `u32` and the index is scaled by the entry size.
 - (`COLR`) Variation delta indices are added with overflow checking. A `varIndexBase` near
   `u32::MAX` aborted in debug and wrapped to an unrelated delta index in release.
+- (`CFF`) Glyph outlines are transformed by the font matrix. Fonts with a non-default
+  `FontMatrix` were outlined at the wrong scale.
+  Thanks to [tbodt](https://github.com/tbodt).
 - (`CFF2`) Fonts without a `vstore` can outline glyphs. The Top DICT entry is optional per
   spec, but variation scalars were resolved at index 0 before the first operator ran, which
   fails on an absent store — so every glyph of a static CFF2 font returned `None`. Scalars are
@@ -230,11 +245,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - `COLR` / `CPAL` v0 support.
   Thanks to [laurmaedje](https://github.com/laurmaedje).
+- `Face::is_color_glyph`
+- `Face::color_palettes`
+- `cpal::Table::palettes`
 
 ### Changed
 - `svg::SvgDocumentsList` returns `svg::SvgDocument` and not just `&[u8]` now.
   Thanks to [wjian23](https://github.com/wjian23).
 - `Face::set_variation` allows duplicated axes now.
+- `cpal::Color` is called `cpal::BgraColor` now, and `cpal::Table::get` returns it.
 
 ## [0.19.2] - 2023-09-13
 ### Added
@@ -262,6 +281,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.18.0] - 2022-12-25
 ### Added
+- `name::Name::language`
+- `Language` enum with all Windows languages.
+
+## [0.17.1] - 2022-10-15
+### Added
 - `Face::permissions`
 - `Face::is_subsetting_allowed`
 - `Face::is_bitmap_embedding_allowed`
@@ -270,8 +294,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `os2::Table::is_subsetting_allowed`
 - `os2::Table::is_bitmap_embedding_allowed`
 - `os2::Table::unicode_ranges`
-- `name::Name::language`
-- `Language` enum with all Windows languages.
 
 ### Changed
 - Using a non-zero index in `Face::parse` for a regular font will return
@@ -285,7 +307,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - (CFF) Fix large tables parsing.
 
-## [0.16.0] - 2022-09-18
+## [0.16.0] - 2022-09-28
 ### Added
 - CFF Encoding support.
 - `cff::Table::glyph_index`
@@ -445,6 +467,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.8.3] - 2020-11-15
 ### Added
 - `Face::glyph_variation_delta`
+- The `parser` module is public now. Made private again in 0.15.0.
+- (C API) `ttfp_glyph_variation_delta`
 
 ### Fixed
 - `Iterator::nth` implementation for `cmap::Subtables` and `Names`.
@@ -629,12 +653,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 - `GDEF` table parsing.
 
-[Unreleased]: https://github.com/harfbuzz/ttf-parser/compare/v0.25.1...HEAD
+## [0.1.0] - 2019-06-18
+### Added
+- Initial release. Parsing of `cmap`, `glyf`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `name`,
+  `OS/2`, `post`, `vhea` and `vmtx`, with `GDEF` and font-collection support.
+
+[Unreleased]: https://github.com/harfbuzz/ttf-parser/compare/v0.26.0...HEAD
+[0.26.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.25.1...v0.26.0
 [0.25.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.24.1...v0.25.0
 [0.24.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.24.0...v0.24.1
-[0.24.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.23.0...v0.24.0
-[0.23.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.22.0...v0.23.0
+[0.24.0]: https://github.com/harfbuzz/ttf-parser/compare/0.23.0...v0.24.0
+[0.23.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.22.0...0.23.0
 [0.22.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.21.1...v0.22.0
 [0.21.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.20.0...v0.21.0
@@ -644,6 +674,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [0.19.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.17.0...v0.18.0
+[0.17.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.15.2...v0.16.0
 [0.15.2]: https://github.com/harfbuzz/ttf-parser/compare/v0.15.1...v0.15.2
@@ -677,3 +708,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [0.2.2]: https://github.com/harfbuzz/ttf-parser/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/harfbuzz/ttf-parser/releases/tag/v0.1.0
