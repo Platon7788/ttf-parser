@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.26.0] - 2026-08-06
+## [Unreleased]
+
 ### Added
 - `alloc` build feature, for `no_std` builds with an allocator.
   `Name::to_string` and the `gvar-alloc` heap spill no longer require `std`.
@@ -658,8 +659,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Initial release. Parsing of `cmap`, `glyf`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `name`,
   `OS/2`, `post`, `vhea` and `vmtx`, with `GDEF` and font-collection support.
 
-[Unreleased]: https://github.com/harfbuzz/ttf-parser/compare/v0.26.0...HEAD
-[0.26.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.25.1...v0.26.0
+[Unreleased]: https://github.com/harfbuzz/ttf-parser/compare/v0.25.1...HEAD
 [0.25.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.25.0...v0.25.1
 [0.25.0]: https://github.com/harfbuzz/ttf-parser/compare/v0.24.1...v0.25.0
 [0.24.1]: https://github.com/harfbuzz/ttf-parser/compare/v0.24.0...v0.24.1
