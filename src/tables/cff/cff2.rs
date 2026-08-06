@@ -211,6 +211,12 @@ struct CharStringParserContext<'a> {
     metadata: &'a Table<'a>,
     coordinates: &'a [NormalizedCoordinate],
     scalars: Scalars,
+    /// Whether `update_scalars` has run for this glyph.
+    ///
+    /// Scalars are resolved on first use rather than up front, because a CFF2 table is
+    /// allowed to omit `vstore` entirely and resolving index 0 against an absent variation
+    /// store fails. A charstring with no `blend` never needs them. ~keep
+    scalars_loaded: bool,
     had_vsindex: bool,
     had_blend: bool,
     stems_len: u32,
@@ -235,6 +241,7 @@ impl CharStringParserContext<'_> {
 
     fn update_scalars(&mut self, index: u16) -> Result<(), CFFError> {
         self.scalars.clear();
+        self.scalars_loaded = true;
 
         let indices = self
             .metadata
@@ -266,14 +273,12 @@ fn parse_char_string(
         metadata,
         coordinates,
         scalars: Scalars::default(),
+        scalars_loaded: false,
         had_vsindex: false,
         had_blend: false,
         stems_len: 0,
         subr_calls: 0,
     };
-
-    // Load scalars at default index.
-    ctx.update_scalars(0)?;
 
     let mut inner_builder = Builder {
         builder,
@@ -412,6 +417,14 @@ fn _parse_char_string(
 
                 if p.stack.is_empty() {
                     return Err(CFFError::InvalidArgumentsStackLength);
+                }
+
+                // The default variation store index applies when no `vsindex` selected one.
+                // Resolving it here rather than before the first operator is what lets a
+                // CFF2 table without a `vstore` outline at all: such a font never reaches
+                // this point, while one that does reach it genuinely needs the store. ~keep
+                if !ctx.scalars_loaded {
+                    ctx.update_scalars(0)?;
                 }
 
                 let n = u16::try_num_from(p.stack.pop())

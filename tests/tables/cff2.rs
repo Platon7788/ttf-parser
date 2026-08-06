@@ -129,10 +129,6 @@ fn index(objects: &[Vec<u8>]) -> Vec<u8> {
 
 // An ItemVariationStore with `regions` regions and a single ItemVariationData
 // that references all of them, preceded by the u16 length field CFF2 requires.
-//
-// `parse_char_string` calls `update_scalars(0)` before executing a single operator,
-// so a CFF2 table without a variation store cannot outline *any* glyph. Every font
-// built here therefore carries one. ~keep
 fn variation_store(regions: u16) -> Vec<u8> {
     const HEADER_LEN: usize = 12; // format + regionListOffset + count + one offset
     let region_list_len = 4 + 6 * usize::from(regions);
@@ -173,7 +169,9 @@ fn variation_store(regions: u16) -> Vec<u8> {
 /// Layout: header, Top DICT, Global Subr INDEX, VariationStore, FDArray,
 /// Private DICT, Local Subr INDEX, CharStrings INDEX.
 struct Cff2 {
-    regions: u16,
+    /// `None` omits the Top DICT `vstore` entry entirely, which the CFF2 spec allows:
+    /// a static CFF2 font has no variation data.
+    regions: Option<u16>,
     global_subrs: Vec<Vec<u8>>,
     local_subrs: Vec<Vec<u8>>,
     char_strings: Vec<Vec<u8>>,
@@ -182,7 +180,7 @@ struct Cff2 {
 impl Cff2 {
     fn new(char_strings: Vec<Vec<u8>>) -> Self {
         Cff2 {
-            regions: 1,
+            regions: Some(1),
             global_subrs: Vec::new(),
             local_subrs: Vec::new(),
             char_strings,
@@ -192,7 +190,8 @@ impl Cff2 {
     fn build(&self) -> Vec<u8> {
         const HEADER_LEN: usize = 5;
         // dict_int is 5 bytes, so: charstrings 6, vstore 6, fdarray 7.
-        const TOP_DICT_LEN: usize = 19;
+        const VSTORE_ENTRY_LEN: usize = 6;
+        let top_dict_len = if self.regions.is_some() { 19 } else { 19 - VSTORE_ENTRY_LEN };
         // `size offset 18`
         const FONT_DICT_LEN: usize = 11;
         // count(4) + offSize(1) + 2 one-byte offsets + payload
@@ -202,10 +201,10 @@ impl Cff2 {
 
         let global_subrs = index(&self.global_subrs);
         let local_subrs = index(&self.local_subrs);
-        let variation_store = variation_store(self.regions);
+        let variation_store = self.regions.map(variation_store).unwrap_or_default();
         let char_strings = index(&self.char_strings);
 
-        let global_subrs_offset = HEADER_LEN + TOP_DICT_LEN;
+        let global_subrs_offset = HEADER_LEN + top_dict_len;
         let variation_store_offset = global_subrs_offset + global_subrs.len();
         let font_dict_index_offset = variation_store_offset + variation_store.len();
         let private_dict_offset = font_dict_index_offset + FD_ARRAY_LEN;
@@ -215,11 +214,13 @@ impl Cff2 {
         let mut top_dict = Vec::new();
         top_dict.extend_from_slice(&dict_int(char_strings_offset as i32));
         top_dict.push(top_dict_operator::CHAR_STRINGS_OFFSET);
-        top_dict.extend_from_slice(&dict_int(variation_store_offset as i32));
-        top_dict.push(top_dict_operator::VARIATION_STORE_OFFSET);
+        if self.regions.is_some() {
+            top_dict.extend_from_slice(&dict_int(variation_store_offset as i32));
+            top_dict.push(top_dict_operator::VARIATION_STORE_OFFSET);
+        }
         top_dict.extend_from_slice(&dict_int(font_dict_index_offset as i32));
         top_dict.extend_from_slice(&top_dict_operator::FONT_DICT_INDEX_OFFSET);
-        assert_eq!(top_dict.len(), TOP_DICT_LEN);
+        assert_eq!(top_dict.len(), top_dict_len);
 
         let mut font_dict = Vec::new();
         font_dict.extend_from_slice(&dict_int(PRIVATE_DICT_LEN as i32));
@@ -239,7 +240,7 @@ impl Cff2 {
         data.push(2); // majorVersion
         data.push(0); // minorVersion
         data.push(HEADER_LEN as u8); // headerSize
-        data.extend_from_slice(&(TOP_DICT_LEN as u16).to_be_bytes()); // topDictLength
+        data.extend_from_slice(&(top_dict_len as u16).to_be_bytes()); // topDictLength
         data.extend_from_slice(&top_dict);
         assert_eq!(data.len(), global_subrs_offset);
         data.extend_from_slice(&global_subrs);
@@ -336,6 +337,44 @@ fn minimal_glyph_outlines() {
     // CFF2 has no `endchar`, and the parser never closes the last contour.
     assert_eq!(path, "M 100 0 L 150 50 ");
     assert_eq!(result.unwrap(), rect(100, 0, 150, 50));
+}
+
+// Regression test for https://github.com/harfbuzz/ttf-parser/issues/239. The `vstore` Top DICT
+// entry is optional, but `parse_char_string` used to resolve variation index 0 before running
+// a single operator, which fails on an absent store — so a static CFF2 font could not outline
+// any glyph at all. The output must match `minimal_glyph_outlines` exactly.
+#[test]
+fn glyph_without_a_variation_store_outlines() {
+    let mut char_string = Vec::new();
+    char_string.extend_from_slice(&cs_int(100));
+    char_string.push(operator::HORIZONTAL_MOVE_TO);
+    char_string.extend_from_slice(&cs_int(50));
+    char_string.extend_from_slice(&cs_int(50));
+    char_string.push(operator::LINE_TO);
+
+    let mut font = Cff2::new(vec![char_string]);
+    font.regions = None;
+    let (result, path) = outline(&font.build());
+
+    assert_eq!(path, "M 100 0 L 150 50 ");
+    assert_eq!(result.unwrap(), rect(100, 0, 150, 50));
+}
+
+// `blend` genuinely needs the store, so it must still be rejected when there is none.
+#[test]
+fn blend_without_a_variation_store_is_rejected() {
+    let mut char_string = Vec::new();
+    char_string.extend_from_slice(&cs_int(100));
+    char_string.extend_from_slice(&cs_int(10));
+    char_string.extend_from_slice(&cs_int(1));
+    char_string.push(operator::BLEND);
+    char_string.push(operator::HORIZONTAL_MOVE_TO);
+
+    let mut font = Cff2::new(vec![char_string]);
+    font.regions = None;
+    let (result, _) = outline(&font.build());
+
+    assert_eq!(result.unwrap_err(), CFFError::InvalidItemVariationDataIndex);
 }
 
 #[test]

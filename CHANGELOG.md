@@ -104,6 +104,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - (`fvar`) `Face::set_variation` works on a face with exactly 64 axes. Its guard rejected an
   axis count equal to the coordinate-storage limit, while every other site clamps to that
   limit inclusively, so such a face could not be varied on any axis at all.
+- (`CFF2`) Fonts without a `vstore` can outline glyphs. The Top DICT entry is optional per
+  spec, but variation scalars were resolved at index 0 before the first operator ran, which
+  fails on an absent store — so every glyph of a static CFF2 font returned `None`. Scalars are
+  now resolved on first `blend` instead, which is the only operator that needs them.
 - (`gvar`) Outlining a variable glyph no longer aborts under `-Zrandomize-layout`.
   Two `debug_assert!`s bounded the size of internal iterator structs, but Rust does not
   guarantee `repr(Rust)` layout and randomization pushed them past the bound, so every debug
