@@ -8,6 +8,15 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
 jobs:
+  bounded-fuzz:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@nightly
+      - name: Three coverage-guided font targets with ASan
+        run: bash testing-tools/ttf-fuzz/run-bounded.sh 120
   build:
     strategy:
       fail-fast: false
