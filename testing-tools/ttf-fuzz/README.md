@@ -33,7 +33,8 @@ The script uses the instrumentation flags from
 ASan, debug assertions, three licensed font seeds, 10-second per-input timeout
 and a 2 GiB RSS limit. Logs, evolved corpora and crash artifacts remain under
 target/bounded-fuzz. Exit failure is preserved through log capture.
-Manual CI executes this gate. A short successful run is finite evidence,
+Run this gate on an existing local Linux host. GitHub build workflows are
+disabled and archived outside Actions discovery. A short successful run is finite evidence,
 not exhaustive coverage. Windows nightly 1.100 plus cargo-fuzz 0.13.2 failed
 before execution with unresolved __start/__stop___sancov coverage symbols;
 that attempt must not be reported as parser acceptance or an executed campaign.

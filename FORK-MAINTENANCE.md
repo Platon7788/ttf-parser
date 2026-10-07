@@ -26,7 +26,10 @@ the upstream diff, these tests and the effective downstream graph.
 
 - All four original Cargo packages and downstream smoke: Rust 1.99;
   fuzz package edition 2024/resolver 3.
-  rust-toolchain follows stable; CI tests explicit MSRV 1.99.0 and stable.
+  rust-toolchain follows stable; validation uses explicit MSRV 1.99.0 and stable.
+  GitHub builds are disabled by the maintainer's local-build policy; the prior
+  workflow is archived in `.github/workflow-templates/main.yml`, outside Actions
+  discovery. Historical CI evidence below applies only to its recorded commits.
 - Registry API checked 2026-10-07: core_maths 0.1.1, base64 0.23.1,
   pico-args 0.5.0, xmlwriter 0.1.0 and bencher 0.1.5 are current stable.
   Semver ranges retained. Every resolved registry package in all five manifests
