@@ -83,6 +83,10 @@ the upstream diff, these tests and the effective downstream graph.
 
 ## Executed evidence and limitations
 
+Native GitHub CI [37574720400](https://github.com/Platon7788/ttf-parser/actions/runs/37574720400)
+on `41e66b266b180a728fbb68e872d9074ffc06c671`: all four Windows/Ubuntu ×
+MSRV/stable jobs succeeded. Core all-feature tests: 279 tests plus 3 doctests
+per profile; SVG matrix tests: 2; C API: 3 in each profile; downstream: 1.
 Windows Rust 1.99: upstream full-feature suite plus new metric/mutation tests
 passes in debug and release. Strict Clippy passes for root and C API.
 C API's three tests pass debug/release and Miri on Linux target interpreted
@@ -102,8 +106,8 @@ finite coverage, not a sustained coverage-guided fuzz campaign or proof of no bu
 Existing tests exercise COLR/glyf/CFF fanout budgets and malformed tables.
 
 The separate downstream smoke package checks owned_ttf_parser and ab_glyph with
-the actual patched parser. CI also checks libFuzzer harness compilation and native
-C with ASan. Native Wayland compositor/window decoration, 32-bit targets, allocator
+the actual patched parser. CI passed libFuzzer harness compilation and native
+C smoke on both platforms, with ASan on the Linux C caller. Native Wayland compositor/window decoration, 32-bit targets, allocator
 failure under gvar-alloc, and a full independent line-by-line security review
 remain unverified. Source review concentrated on parsing arithmetic, raw-pointer
 FFI, recursive work budgets, feature boundaries and stale tooling; it is not a
