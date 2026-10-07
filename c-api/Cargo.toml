@@ -9,7 +9,7 @@ authors = [
 ]
 license = "MIT"
 edition = "2024"
-rust-version = "1.88.0"
+rust-version = "1.99"
 
 [lib]
 name = "ttfparser"

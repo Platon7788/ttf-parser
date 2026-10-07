@@ -2,24 +2,39 @@
 name = "ttf-fuzz"
 version = "0.1.0"
 authors = ["Yevhenii Reizner <razrfalcon@gmail.com>"]
-edition = "2018"
+edition = "2024"
+rust-version = "1.99"
+publish = false
 
 # Prevent this from interfering with workspaces
+[package.metadata]
+cargo-fuzz = true
+
 [workspace]
 members = ["."]
+resolver = "3"
 
 [dependencies]
-afl = "0.7"
+libfuzzer-sys = "0.4"
 ttf-parser = { path = "../.." }
 
 [[bin]]
 name = "fuzz-outline"
 path = "src/fuzz-outline.rs"
+test = false
+doc = false
+bench = false
 
 [[bin]]
 name = "fuzz-glyph-index"
 path = "src/fuzz-glyph-index.rs"
+test = false
+doc = false
+bench = false
 
 [[bin]]
 name = "fuzz-variable-outline"
 path = "src/fuzz-variable-outline.rs"
+test = false
+doc = false
+bench = false

@@ -53,45 +53,45 @@ fn parse_rejects_fewer_than_ten_bytes() {
 
 #[test]
 fn is_italic_is_true_for_latin_text_oblique_letterforms() {
-    assert_eq!(Panose(LATIN_TEXT_OBLIQUE).is_italic(), true);
-    assert_eq!(Panose(LATIN_TEXT_UPRIGHT).is_italic(), false);
+    assert!(Panose(LATIN_TEXT_OBLIQUE).is_italic());
+    assert!(!Panose(LATIN_TEXT_UPRIGHT).is_italic());
 }
 
 #[test]
 fn is_italic_is_true_only_within_the_handwritten_oblique_range() {
-    assert_eq!(Panose(HANDWRITTEN_OBLIQUE).is_italic(), true);
-    assert_eq!(Panose(HANDWRITTEN_EXAGGERATED).is_italic(), false);
+    assert!(Panose(HANDWRITTEN_OBLIQUE).is_italic());
+    assert!(!Panose(HANDWRITTEN_EXAGGERATED).is_italic());
 }
 
 #[test]
 fn is_italic_is_false_when_the_family_does_not_classify_letterform() {
-    assert_eq!(Panose(ANY_FIT).is_italic(), false);
-    assert_eq!(Panose(NO_FIT).is_italic(), false);
+    assert!(!Panose(ANY_FIT).is_italic());
+    assert!(!Panose(NO_FIT).is_italic());
 }
 
 #[test]
 fn is_bold_reads_the_weight_digit() {
-    assert_eq!(Panose(LATIN_TEXT_BOLD).is_bold(), true);
-    assert_eq!(Panose(LATIN_TEXT_UPRIGHT).is_bold(), false);
+    assert!(Panose(LATIN_TEXT_BOLD).is_bold());
+    assert!(!Panose(LATIN_TEXT_UPRIGHT).is_bold());
 }
 
 #[test]
 fn is_bold_is_false_for_any_and_no_fit_whose_digits_are_meaningless() {
     // Both fixtures carry an 8 in some position; neither is a weight.
-    assert_eq!(Panose(ANY_FIT).is_bold(), false);
-    assert_eq!(Panose(NO_FIT).is_bold(), false);
+    assert!(!Panose(ANY_FIT).is_bold());
+    assert!(!Panose(NO_FIT).is_bold());
 }
 
 #[test]
 fn is_monospaced_uses_the_value_for_the_family() {
     // Latin Text encodes monospaced as 9, Latin Handwritten as 3, at the same position.
-    assert_eq!(Panose(LATIN_TEXT_MONOSPACED).is_monospaced(), true);
-    assert_eq!(Panose(HANDWRITTEN_MONOSPACED).is_monospaced(), true);
+    assert!(Panose(LATIN_TEXT_MONOSPACED).is_monospaced());
+    assert!(Panose(HANDWRITTEN_MONOSPACED).is_monospaced());
 
     // The other family's value at that position must not be accepted.
     let text_with_handwritten_value = [2, 0, 0, 3, 0, 0, 0, 0, 0, 0];
-    assert_eq!(Panose(text_with_handwritten_value).is_monospaced(), false);
+    assert!(!Panose(text_with_handwritten_value).is_monospaced());
 
     let handwritten_with_text_value = [3, 0, 0, 9, 0, 0, 0, 0, 0, 0];
-    assert_eq!(Panose(handwritten_with_text_value).is_monospaced(), false);
+    assert!(!Panose(handwritten_with_text_value).is_monospaced());
 }

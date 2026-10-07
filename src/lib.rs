@@ -172,9 +172,10 @@ impl From<f32> for NormalizedCoordinate {
     /// Creates a new coordinate.
     ///
     /// The provided number will be clamped to the -1.0..1.0 range.
+    /// Infinities clamp to the corresponding boundary; NaN becomes zero.
     #[inline]
     fn from(n: f32) -> Self {
-        NormalizedCoordinate((parser::f32_bound(-1.0, n, 1.0) * 16384.0) as i16)
+        NormalizedCoordinate((n.clamp(-1.0, 1.0) * 16384.0) as i16)
     }
 }
 
@@ -349,16 +350,16 @@ impl Rect {
         }
     }
 
-    /// Returns rect's width.
+    /// Returns rect's width, saturating if the difference does not fit in `i16`.
     #[inline]
     pub fn width(&self) -> i16 {
-        self.x_max - self.x_min
+        self.x_max.saturating_sub(self.x_min)
     }
 
-    /// Returns rect's height.
+    /// Returns rect's height, saturating if the difference does not fit in `i16`.
     #[inline]
     pub fn height(&self) -> i16 {
-        self.y_max - self.y_min
+        self.y_max.saturating_sub(self.y_min)
     }
 }
 
@@ -1552,23 +1553,23 @@ impl<'a> Face<'a> {
     /// This method is affected by variation axes.
     #[inline]
     pub fn ascender(&self) -> i16 {
-        if let Some(os_2) = self.tables.os2 {
-            if os_2.use_typographic_metrics() {
-                let value = os_2.typographic_ascender();
-                return self.apply_metrics_variation(Tag::from_bytes(b"hasc"), value);
-            }
+        if let Some(os_2) = self.tables.os2
+            && os_2.use_typographic_metrics()
+        {
+            let value = os_2.typographic_ascender();
+            return self.apply_metrics_variation(Tag::from_bytes(b"hasc"), value);
         }
 
         let mut value = self.tables.hhea.ascender;
-        if value == 0 {
-            if let Some(os_2) = self.tables.os2 {
-                value = os_2.typographic_ascender();
-                if value == 0 {
-                    value = os_2.windows_ascender();
-                    value = self.apply_metrics_variation(Tag::from_bytes(b"hcla"), value);
-                } else {
-                    value = self.apply_metrics_variation(Tag::from_bytes(b"hasc"), value);
-                }
+        if value == 0
+            && let Some(os_2) = self.tables.os2
+        {
+            value = os_2.typographic_ascender();
+            if value == 0 {
+                value = os_2.windows_ascender();
+                value = self.apply_metrics_variation(Tag::from_bytes(b"hcla"), value);
+            } else {
+                value = self.apply_metrics_variation(Tag::from_bytes(b"hasc"), value);
             }
         }
 
@@ -1580,23 +1581,23 @@ impl<'a> Face<'a> {
     /// This method is affected by variation axes.
     #[inline]
     pub fn descender(&self) -> i16 {
-        if let Some(os_2) = self.tables.os2 {
-            if os_2.use_typographic_metrics() {
-                let value = os_2.typographic_descender();
-                return self.apply_metrics_variation(Tag::from_bytes(b"hdsc"), value);
-            }
+        if let Some(os_2) = self.tables.os2
+            && os_2.use_typographic_metrics()
+        {
+            let value = os_2.typographic_descender();
+            return self.apply_metrics_variation(Tag::from_bytes(b"hdsc"), value);
         }
 
         let mut value = self.tables.hhea.descender;
-        if value == 0 {
-            if let Some(os_2) = self.tables.os2 {
-                value = os_2.typographic_descender();
-                if value == 0 {
-                    value = os_2.windows_descender();
-                    value = self.apply_metrics_variation(Tag::from_bytes(b"hcld"), value);
-                } else {
-                    value = self.apply_metrics_variation(Tag::from_bytes(b"hdsc"), value);
-                }
+        if value == 0
+            && let Some(os_2) = self.tables.os2
+        {
+            value = os_2.typographic_descender();
+            if value == 0 {
+                value = os_2.windows_descender();
+                value = self.apply_metrics_variation(Tag::from_bytes(b"hcld"), value);
+            } else {
+                value = self.apply_metrics_variation(Tag::from_bytes(b"hdsc"), value);
             }
         }
 
@@ -1604,11 +1605,12 @@ impl<'a> Face<'a> {
     }
 
     /// Returns face's height.
+    /// Saturates if the difference does not fit in `i16`.
     ///
     /// This method is affected by variation axes.
     #[inline]
     pub fn height(&self) -> i16 {
-        self.ascender() - self.descender()
+        self.ascender().saturating_sub(self.descender())
     }
 
     /// Returns a horizontal face line gap.
@@ -1616,23 +1618,23 @@ impl<'a> Face<'a> {
     /// This method is affected by variation axes.
     #[inline]
     pub fn line_gap(&self) -> i16 {
-        if let Some(os_2) = self.tables.os2 {
-            if os_2.use_typographic_metrics() {
-                let value = os_2.typographic_line_gap();
-                return self.apply_metrics_variation(Tag::from_bytes(b"hlgp"), value);
-            }
+        if let Some(os_2) = self.tables.os2
+            && os_2.use_typographic_metrics()
+        {
+            let value = os_2.typographic_line_gap();
+            return self.apply_metrics_variation(Tag::from_bytes(b"hlgp"), value);
         }
 
         let mut value = self.tables.hhea.line_gap;
         // For line gap, we have to check that ascender or descender are 0, not line gap itself.
-        if self.tables.hhea.ascender == 0 || self.tables.hhea.descender == 0 {
-            if let Some(os_2) = self.tables.os2 {
-                if os_2.typographic_ascender() != 0 || os_2.typographic_descender() != 0 {
-                    value = os_2.typographic_line_gap();
-                    value = self.apply_metrics_variation(Tag::from_bytes(b"hlgp"), value);
-                } else {
-                    value = 0;
-                }
+        if (self.tables.hhea.ascender == 0 || self.tables.hhea.descender == 0)
+            && let Some(os_2) = self.tables.os2
+        {
+            if os_2.typographic_ascender() != 0 || os_2.typographic_descender() != 0 {
+                value = os_2.typographic_line_gap();
+                value = self.apply_metrics_variation(Tag::from_bytes(b"hlgp"), value);
+            } else {
+                value = 0;
             }
         }
 
@@ -1710,11 +1712,15 @@ impl<'a> Face<'a> {
     }
 
     /// Returns a vertical face height.
+    /// Saturates if the difference does not fit in `i16`.
     ///
     /// This method is affected by variation axes.
     #[inline]
     pub fn vertical_height(&self) -> Option<i16> {
-        Some(self.vertical_ascender()? - self.vertical_descender()?)
+        Some(
+            self.vertical_ascender()?
+                .saturating_sub(self.vertical_descender()?),
+        )
     }
 
     /// Returns a vertical face line gap.
@@ -2027,11 +2033,11 @@ impl<'a> Face<'a> {
 
             if self.is_variable() {
                 // Ignore variation offset when `hvar` is not set.
-                if let Some(hvar) = self.tables.hvar {
-                    if let Some(offset) = hvar.left_side_bearing_offset(glyph_id, self.coords()) {
-                        // We can't use `round()` in `no_std`, so this is the next best thing.
-                        bearing += offset + 0.5;
-                    }
+                if let Some(hvar) = self.tables.hvar
+                    && let Some(offset) = hvar.left_side_bearing_offset(glyph_id, self.coords())
+                {
+                    // We can't use `round()` in `no_std`, so this is the next best thing.
+                    bearing += offset + 0.5;
                 }
             }
 
@@ -2055,11 +2061,11 @@ impl<'a> Face<'a> {
 
             if self.is_variable() {
                 // Ignore variation offset when `vvar` is not set.
-                if let Some(vvar) = self.tables.vvar {
-                    if let Some(offset) = vvar.top_side_bearing_offset(glyph_id, self.coords()) {
-                        // We can't use `round()` in `no_std`, so this is the next best thing.
-                        bearing += offset + 0.5;
-                    }
+                if let Some(vvar) = self.tables.vvar
+                    && let Some(offset) = vvar.top_side_bearing_offset(glyph_id, self.coords())
+                {
+                    // We can't use `round()` in `no_std`, so this is the next best thing.
+                    bearing += offset + 0.5;
                 }
             }
 
@@ -2083,11 +2089,11 @@ impl<'a> Face<'a> {
 
             if self.is_variable() {
                 // Ignore variation offset when `vvar` is not set.
-                if let Some(vvar) = self.tables.vvar {
-                    if let Some(offset) = vvar.vertical_origin_offset(glyph_id, self.coords()) {
-                        // We can't use `round()` in `no_std`, so this is the next best thing.
-                        origin += offset + 0.5;
-                    }
+                if let Some(vvar) = self.tables.vvar
+                    && let Some(offset) = vvar.vertical_origin_offset(glyph_id, self.coords())
+                {
+                    // We can't use `round()` in `no_std`, so this is the next best thing.
+                    origin += offset + 0.5;
                 }
             }
 
@@ -2260,10 +2266,10 @@ impl<'a> Face<'a> {
         glyph_id: GlyphId,
         pixels_per_em: u16,
     ) -> Option<RasterGlyphImage<'_>> {
-        if let Some(table) = self.tables.sbix {
-            if let Some(strike) = table.best_strike(pixels_per_em) {
-                return strike.get(glyph_id);
-            }
+        if let Some(table) = self.tables.sbix
+            && let Some(strike) = table.best_strike(pixels_per_em)
+        {
+            return strike.get(glyph_id);
         }
         if let Some(bdat) = self.tables.bdat {
             return bdat.get(glyph_id, pixels_per_em);

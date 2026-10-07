@@ -35,7 +35,11 @@ fn basic() {
     let colr = colr::Table::parse(cpal, &colr_data).unwrap();
     let paint = |id| {
         let mut painter = VecPainter(vec![]);
-        colr.paint(GlyphId(id), 0, &mut painter, &[], RgbaColor::new(0, 0, 0, 255)).map(|_| painter.0)
+        #[cfg(feature = "variable-fonts")]
+        let result = colr.paint(GlyphId(id), 0, &mut painter, &[], RgbaColor::new(0, 0, 0, 255));
+        #[cfg(not(feature = "variable-fonts"))]
+        let result = colr.paint(GlyphId(id), 0, &mut painter, RgbaColor::new(0, 0, 0, 255));
+        result.map(|_| painter.0)
     };
 
     let a = RgbaColor::new(20, 15, 10, 25);
@@ -129,19 +133,28 @@ impl<'a> Painter<'a> for VecPainter {
     }
 
     fn paint(&mut self, paint: Paint<'a>) {
+        macro_rules! stops {
+            ($gradient:ident) => {{
+                #[cfg(feature = "variable-fonts")]
+                let stops = $gradient.stops(0, &[]);
+                #[cfg(not(feature = "variable-fonts"))]
+                let stops = $gradient.stops(0);
+                stops.map(|stop| CustomStop(stop.stop_offset, stop.color)).collect()
+            }};
+        }
         let custom_paint = match paint {
             Paint::Solid(color) => CustomPaint::Solid(color),
             Paint::LinearGradient(lg) => CustomPaint::LinearGradient(lg.x0, lg.y0,
                                                                      lg.x1, lg.y1,
                                                                      lg.x2, lg.y2,
-                                                                     lg.extend, lg.stops(0, &[]).map(|stop| CustomStop(stop.stop_offset, stop.color)).collect()),
+                                                                     lg.extend, stops!(lg)),
             Paint::RadialGradient(rg) => CustomPaint::RadialGradient(rg.x0, rg.y0,
                                                                      rg.r0, rg.r1,
                                                                      rg.x1, rg.y1,
-                                                                     rg.extend, rg.stops(0, &[]).map(|stop| CustomStop(stop.stop_offset, stop.color)).collect()),
+                                                                     rg.extend, stops!(rg)),
             Paint::SweepGradient(sg) => CustomPaint::SweepGradient(sg.center_x, sg.center_y,
                                                                    sg.start_angle, sg.end_angle,
-                                                                   sg.extend, sg.stops(0, &[]).map(|stop| CustomStop(stop.stop_offset, stop.color)).collect()),
+                                                                   sg.extend, stops!(sg)),
         };
 
         self.0.push(Command::Paint(custom_paint));
@@ -179,6 +192,7 @@ impl<'a> Painter<'a> for VecPainter {
 // A static and variable COLRv1 test font from Google Fonts:
 // https://github.com/googlefonts/color-fonts
 static COLR1_STATIC: &[u8] = include_bytes!("../fonts/colr_1.ttf");
+#[cfg(feature = "variable-fonts")]
 static COLR1_VARIABLE: &[u8] = include_bytes!("../fonts/colr_1_variable.ttf");
 
 mod colr1_static {
@@ -394,6 +408,7 @@ mod colr1_static {
 }
 
 
+#[cfg(feature = "variable-fonts")]
 mod colr1_variable {
     use ttf_parser::{Face, GlyphId, RgbaColor, Tag};
     use ttf_parser::colr::ClipBox;

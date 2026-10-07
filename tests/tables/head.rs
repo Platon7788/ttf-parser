@@ -85,25 +85,25 @@ fn post_data(italic_angle: f32) -> Vec<u8> {
 #[test]
 fn mac_style_italic_bit_clear() {
     let table = Table::parse(&head_data(0)).unwrap();
-    assert_eq!(table.is_italic, false);
+    assert!(!table.is_italic);
 }
 
 #[test]
 fn mac_style_italic_bit_set() {
     let table = Table::parse(&head_data(1 << 1)).unwrap();
-    assert_eq!(table.is_italic, true);
+    assert!(table.is_italic);
 }
 
 #[test]
 fn mac_style_bold_bit_does_not_imply_italic() {
     let table = Table::parse(&head_data(1 << 0)).unwrap();
-    assert_eq!(table.is_italic, false);
+    assert!(!table.is_italic);
 }
 
 #[test]
 fn mac_style_bold_and_italic_bits_both_set() {
     let table = Table::parse(&head_data((1 << 0) | (1 << 1))).unwrap();
-    assert_eq!(table.is_italic, true);
+    assert!(table.is_italic);
 }
 
 // Regression test for https://github.com/harfbuzz/ttf-parser/issues/202:
@@ -127,7 +127,7 @@ fn is_italic_ignores_nonzero_post_italic_angle_when_no_style_flag_is_set() {
     })
     .unwrap();
 
-    assert_eq!(face.is_italic(), false);
+    assert!(!face.is_italic());
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn is_italic_true_when_head_mac_style_italic_bit_is_set() {
     })
     .unwrap();
 
-    assert_eq!(face.is_italic(), true);
+    assert!(face.is_italic());
 }
 
 #[test]
@@ -165,5 +165,5 @@ fn is_italic_true_when_os2_fs_selection_italic_bit_is_set() {
     })
     .unwrap();
 
-    assert_eq!(face.is_italic(), true);
+    assert!(face.is_italic());
 }

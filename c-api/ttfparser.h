@@ -12,8 +12,8 @@
 
 #define TTFP_MAJOR_VERSION 0
 #define TTFP_MINOR_VERSION 25
-#define TTFP_PATCH_VERSION 0
-#define TTFP_VERSION "0.25.0"
+#define TTFP_PATCH_VERSION 1
+#define TTFP_VERSION "0.25.1"
 
 /**
  * @brief A glyph image format.
@@ -245,7 +245,7 @@ int32_t ttfp_fonts_in_collection(const char *data, uintptr_t len);
  * @brief Creates a new font face parser.
  *
  * Since #ttfp_face is an opaque pointer, a caller should allocate it manually
- * using #ttfp_face_size_of.
+ * using #ttfp_face_size_of with alignment from #ttfp_face_align_of.
  * Deallocation is also handled by a caller.
  * #ttfp_face doesn't use heap internally, so we can simply `free()` it without
  * a dedicated `ttfp_face_deinit` function.
@@ -262,6 +262,9 @@ bool ttfp_face_init(const char *data, uintptr_t len, uint32_t index, void *face)
  * @brief Returns the size of `ttfp_face`.
  */
 uintptr_t ttfp_face_size_of(void);
+
+/** @brief Required alignment of face storage. malloc() provides sufficient alignment. */
+uintptr_t ttfp_face_align_of(void);
 
 /**
  * @brief Returns the number of name records in the face.

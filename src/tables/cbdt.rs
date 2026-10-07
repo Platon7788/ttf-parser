@@ -59,7 +59,7 @@ impl<'a> Table<'a> {
         };
         match location.format.data {
             BitmapDataFormat::ByteAligned { bit_depth } => {
-                let row_len = (u32::from(metrics.width) * u32::from(bit_depth) + 7) / 8;
+                let row_len = (u32::from(metrics.width) * u32::from(bit_depth)).div_ceil(8);
                 let data_len = row_len * u32::from(metrics.height);
                 let data = s.read_bytes(usize::num_from(data_len))?;
                 Some(RasterGlyphImage {
@@ -85,7 +85,7 @@ impl<'a> Table<'a> {
                     let w = u32::from(metrics.width);
                     let h = u32::from(metrics.height);
                     let d = u32::from(bit_depth);
-                    (w * h * d + 7) / 8
+                    (w * h * d).div_ceil(8)
                 };
 
                 let data = s.read_bytes(usize::num_from(data_len))?;

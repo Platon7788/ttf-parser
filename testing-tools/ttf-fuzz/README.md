@@ -1,26 +1,21 @@
-## Build
+# Font fuzz targets
 
-Install AFL first:
+The DataForge fork uses current libfuzzer-sys and Result-based Face::parse.
+No cargo-afl installation is required. Compilation with existing tools:
 
-```text
-cargo install afl
+```sh
+cargo check --release --all-targets
 ```
 
-and then build via `cargo-afl`:
+With an already available cargo-fuzz, run a coverage-guided campaign:
 
-```text
-cargo afl build
+```sh
+cargo +nightly fuzz run fuzz-glyph-index corpus
+cargo +nightly fuzz run fuzz-outline corpus
+cargo +nightly fuzz run fuzz-variable-outline corpus
 ```
 
-## Run
-
-Before running, we have to collect some test data.
-Using raw fonts is too wasteful, so we are using the `strip-tables.py` script
-to remove unneeded tables.
-
-Here is an example to test `cmap`/`Face::glyph_index`:
-
-```text
-strip-tables.py glyph-index in /usr/share/fonts
-cargo afl fuzz -i in -o out target/debug/fuzz-glyph-index
-```
+Raw licensed fonts provide seeds. The existing strip-tables.py helper can reduce
+font data when fontTools is already available. Glyph-outline targets sample three
+IDs per input, bounding harness work independently of font glyph count.
+Compilation and deterministic regression smoke are not a sustained campaign.

@@ -59,6 +59,8 @@ const MAX_STACK_TUPLES_LEN: u16 = 32;
 /// This is the only part of the `gvar` algorithm that actually allocates a data.
 /// This is probably unavoidable due to `gvar` structure,
 /// since we have to iterate all tuples in parallel.
+// The large inline variant is deliberate: boxing would allocate for ordinary glyphs.
+#[allow(clippy::large_enum_variant)]
 enum VariationTuples<'a> {
     Stack {
         headers: [VariationTuple<'a>; MAX_STACK_TUPLES_LEN as usize],
@@ -244,11 +246,11 @@ impl<'a> VariationTuples<'a> {
 
         for tuple in self.as_mut_slice() {
             if let Some(ref mut set_points) = tuple.set_points {
-                if set_points.next()? {
-                    if let Some((x_delta, y_delta)) = tuple.deltas.next() {
-                        x += x_delta;
-                        y += y_delta;
-                    }
+                if set_points.next()?
+                    && let Some((x_delta, y_delta)) = tuple.deltas.next()
+                {
+                    x += x_delta;
+                    y += y_delta;
                 }
             } else {
                 if let Some((x_delta, y_delta)) = tuple.deltas.next() {
@@ -790,16 +792,12 @@ mod packed_points {
                 deltas_are_words: false,
                 run_count: 100,
             }));
-            for _ in 0..100 {
-                data.push(2);
-            }
+            data.extend(core::iter::repeat_n(2, 100));
             data.push(gen_control(NewControl {
                 deltas_are_words: false,
                 run_count: 50,
             }));
-            for _ in 0..50 {
-                data.push(2);
-            }
+            data.extend(core::iter::repeat_n(2, 50));
             let points_iter = PackedPointsIter::new(&mut Stream::new(&data))
                 .unwrap()
                 .unwrap();
@@ -1475,15 +1473,13 @@ fn infer_deltas(
         let mut last_point = None;
         let mut deltas = tuple.deltas.clone();
         for (point, is_set) in points.clone().zip(points_set.clone()) {
-            if is_set {
-                if let Some((x_delta, y_delta)) = deltas.next() {
-                    last_point = Some(PointAndDelta {
-                        x: point.x,
-                        y: point.y,
-                        x_delta,
-                        y_delta,
-                    });
-                }
+            if is_set && let Some((x_delta, y_delta)) = deltas.next() {
+                last_point = Some(PointAndDelta {
+                    x: point.x,
+                    y: point.y,
+                    x_delta,
+                    y_delta,
+                });
             }
 
             if point.last_point {

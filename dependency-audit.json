@@ -1,0 +1,186 @@
+{
+  "checked_at": "2026-10-07T05:01:47.291060+00:00",
+  "packages": [
+    {
+      "name": "ab_glyph",
+      "resolved": [
+        "0.2.32"
+      ],
+      "latest_stable": "0.2.32",
+      "rust_version": null,
+      "matches_latest": true
+    },
+    {
+      "name": "ab_glyph_rasterizer",
+      "resolved": [
+        "0.1.10"
+      ],
+      "latest_stable": "0.1.10",
+      "rust_version": null,
+      "matches_latest": true
+    },
+    {
+      "name": "arbitrary",
+      "resolved": [
+        "1.5.0"
+      ],
+      "latest_stable": "1.5.0",
+      "rust_version": "1.71.0",
+      "matches_latest": true
+    },
+    {
+      "name": "base64",
+      "resolved": [
+        "0.23.1"
+      ],
+      "latest_stable": "0.23.1",
+      "rust_version": "1.71.0",
+      "matches_latest": true
+    },
+    {
+      "name": "bencher",
+      "resolved": [
+        "0.1.5"
+      ],
+      "latest_stable": "0.1.5",
+      "rust_version": null,
+      "matches_latest": true
+    },
+    {
+      "name": "cc",
+      "resolved": [
+        "1.6.0"
+      ],
+      "latest_stable": "1.6.0",
+      "rust_version": "1.65.0",
+      "matches_latest": true
+    },
+    {
+      "name": "cfg-if",
+      "resolved": [
+        "1.0.5"
+      ],
+      "latest_stable": "1.0.5",
+      "rust_version": "1.32",
+      "matches_latest": true
+    },
+    {
+      "name": "core_maths",
+      "resolved": [
+        "0.1.1"
+      ],
+      "latest_stable": "0.1.1",
+      "rust_version": null,
+      "matches_latest": true
+    },
+    {
+      "name": "find-msvc-tools",
+      "resolved": [
+        "0.1.14"
+      ],
+      "latest_stable": "0.1.14",
+      "rust_version": "1.65.0",
+      "matches_latest": true
+    },
+    {
+      "name": "getrandom",
+      "resolved": [
+        "0.4.3"
+      ],
+      "latest_stable": "0.4.3",
+      "rust_version": "1.85",
+      "matches_latest": true
+    },
+    {
+      "name": "jobserver",
+      "resolved": [
+        "0.1.35"
+      ],
+      "latest_stable": "0.1.35",
+      "rust_version": "1.85",
+      "matches_latest": true
+    },
+    {
+      "name": "libc",
+      "resolved": [
+        "0.2.190"
+      ],
+      "latest_stable": "0.2.190",
+      "rust_version": "1.65",
+      "matches_latest": true
+    },
+    {
+      "name": "libfuzzer-sys",
+      "resolved": [
+        "0.4.13"
+      ],
+      "latest_stable": "0.4.13",
+      "rust_version": null,
+      "matches_latest": true
+    },
+    {
+      "name": "libm",
+      "resolved": [
+        "0.2.16"
+      ],
+      "latest_stable": "0.2.16",
+      "rust_version": "1.63",
+      "matches_latest": true
+    },
+    {
+      "name": "owned_ttf_parser",
+      "resolved": [
+        "0.25.1"
+      ],
+      "latest_stable": "0.25.1",
+      "rust_version": null,
+      "matches_latest": true
+    },
+    {
+      "name": "pico-args",
+      "resolved": [
+        "0.5.0"
+      ],
+      "latest_stable": "0.5.0",
+      "rust_version": null,
+      "matches_latest": true
+    },
+    {
+      "name": "r-efi",
+      "resolved": [
+        "6.0.0"
+      ],
+      "latest_stable": "7.1.0",
+      "rust_version": "1.68",
+      "matches_latest": false
+    },
+    {
+      "name": "shlex",
+      "resolved": [
+        "2.0.1"
+      ],
+      "latest_stable": "2.0.1",
+      "rust_version": "1.46.0",
+      "matches_latest": true
+    },
+    {
+      "name": "xmlwriter",
+      "resolved": [
+        "0.1.0"
+      ],
+      "latest_stable": "0.1.0",
+      "rust_version": null,
+      "matches_latest": true
+    }
+  ],
+  "rustup_check": "stable up to date: 1.99.0 (b940084d7 2026-09-28)",
+  "inactive_target_exception": {
+    "name": "r-efi",
+    "resolved": "6.0.0",
+    "latest": "7.1.0",
+    "parent": "getrandom 0.4.3",
+    "requirement": "^6",
+    "target": "cfg(all(target_os = \"uefi\", getrandom_backend = \"efi_rng\"))",
+    "reason": "foreign major ABI requirement; absent from supported Windows/Linux builds"
+  }
+}

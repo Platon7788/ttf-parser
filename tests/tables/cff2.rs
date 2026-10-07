@@ -456,7 +456,7 @@ fn global_subroutine_call_budget_bounds_fanout_amplification() {
     // fanout=4, depth=8 nests at most 8 deep, below the STACK_LIMIT of 10, but
     // performs sum(4^L for L in 1..=8) = 87380 invocations, well past the 4096
     // budget. Without the budget the work grows as ~fanout^depth.
-    assert!(87380 > MAX_SUBROUTINE_CALLS);
+    const { assert!(87380 > MAX_SUBROUTINE_CALLS); }
 
     let (result, _) = outline(&fanout_font(4, 8, false));
 

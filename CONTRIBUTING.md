@@ -35,7 +35,7 @@ The repository root is **not** a Cargo workspace. It holds four independent crat
 | `.` | the `ttf-parser` library |
 | `c-api/` | C bindings, producing `libttfparser` and a cbindgen-generated `ttfparser.h` |
 | `benches/` | benchmarks against stb_truetype, FreeType and others |
-| `testing-tools/ttf-fuzz/` | legacy afl fuzz targets, unmaintained (see below) |
+| `testing-tools/ttf-fuzz/` | maintained libFuzzer targets (see below) |
 
 `testing-tools/font-view/` is a Qt/C++ visual debugging tool. It is not built by CI.
 
@@ -44,7 +44,7 @@ Because these are separate crates, commands have to be run from the right direct
 
 ## MSRV and edition
 
-MSRV is **1.88.0** and the crate is on **edition 2024**. The MSRV appears in three places
+MSRV is **1.99** and the crate is on **edition 2024**. The MSRV appears in three places
 that must agree: `rust-version` in `Cargo.toml`, the CI matrix in
 `.github/workflows/main.yml`, and the badge in `README.md`.
 
@@ -123,8 +123,8 @@ poly fmt --fix .          # to apply
 ```
 
 `--no-workspace` matters: without it, `poly lint` shells out to `cargo clippy` and friends.
-This crate has never carried a clippy configuration, so that produces an unbounded set of
-findings unrelated to your change.
+The DataForge fork additionally enforces Cargo fmt and strict Clippy in CI.
+Run `cargo clippy --all-targets --all-features -- -D warnings` locally.
 
 Configuration lives in `poly.toml`. Two exclusions are deliberate and should not be removed
 without discussion:
@@ -217,10 +217,9 @@ both styles. New commits use the convention.
 
 ## Fuzzing
 
-`testing-tools/ttf-fuzz/` is **not maintained** and does not compile — it has called
-`Face::parse` expecting an `Option` since that function started returning a `Result` in
-0.8.0. Do not use it as a starting point.
+The DataForge fork maintains `testing-tools/ttf-fuzz/` on current libfuzzer-sys.
+It uses Result-based Face::parse and bounded sampled-glyph work. CI compiles all
+three targets. See its README for commands using existing tooling. No fuzzing
+command installs tools, and build success does not imply a completed campaign.
 
-The crate is fuzzed by OSS-Fuzz, whose targets are currently vendored in the `google/oss-fuzz`
-repository rather than here. See the open issue about OSS-Fuzz project ownership before
-investing effort in fuzzing infrastructure.
+Upstream OSS-Fuzz targets and ownership remain in the google/oss-fuzz project.

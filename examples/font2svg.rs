@@ -6,8 +6,11 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use ttf_parser as ttf;
+use ttf_parser::RgbaColor;
 use ttf_parser::colr::{ClipBox, Paint};
-use ttf_parser::{RgbaColor, Transform};
+#[path = "font2svg/transform.rs"]
+mod svg_transform;
+use svg_transform::paint_transform;
 
 const FONT_SIZE: f64 = 128.0;
 const COLUMNS: u32 = 100;
@@ -101,12 +104,11 @@ fn process(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    if face.tables().colr.is_some() {
-        if let Some(total) = face.color_palettes() {
-            if args.colr_palette >= total.get() {
-                return Err(format!("only {} palettes are available", total).into());
-            }
-        }
+    if face.tables().colr.is_some()
+        && let Some(total) = face.color_palettes()
+        && args.colr_palette >= total.get()
+    {
+        return Err(format!("only {} palettes are available", total).into());
     }
 
     let num_glyphs = face.number_of_glyphs();
@@ -152,7 +154,7 @@ fn process(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         svg.write_attribute("y", &(y + cell_size - 4.0));
         svg.write_attribute("font-size", "36");
         svg.write_attribute("fill", "gray");
-        svg.write_text_fmt(format_args!("{}", &id));
+        svg.write_text_fmt(format_args!("{}", id));
         svg.end_element();
 
         if face.is_color_glyph(gid) {
@@ -369,7 +371,10 @@ impl<'a> GlyphPainter<'a> {
         let gradient_id = format!("lg{}", self.gradient_index);
         self.gradient_index += 1;
 
-        let gradient_transform = paint_transform(self.outline_transform, self.transform);
+        let Some(gradient_transform) = paint_transform(self.outline_transform, self.transform)
+        else {
+            return;
+        };
 
         // TODO: We ignore x2, y2. Have to apply them somehow.
         // TODO: The way spreadMode works in ttf and svg is a bit different. In SVG, the spreadMode
@@ -437,40 +442,6 @@ impl<'a> GlyphPainter<'a> {
 
     fn paint_sweep_gradient(&mut self, _: ttf::colr::SweepGradient<'a>) {
         println!("Warning: sweep gradients are not supported.")
-    }
-}
-
-fn paint_transform(outline_transform: Transform, transform: Transform) -> Transform {
-    let outline_transform = tiny_skia_path::Transform::from_row(
-        outline_transform.a,
-        outline_transform.b,
-        outline_transform.c,
-        outline_transform.d,
-        outline_transform.e,
-        outline_transform.f,
-    );
-
-    let gradient_transform = tiny_skia_path::Transform::from_row(
-        transform.a,
-        transform.b,
-        transform.c,
-        transform.d,
-        transform.e,
-        transform.f,
-    );
-
-    let gradient_transform = outline_transform
-        .invert()
-        .unwrap()
-        .pre_concat(gradient_transform);
-
-    ttf_parser::Transform {
-        a: gradient_transform.sx,
-        b: gradient_transform.ky,
-        c: gradient_transform.kx,
-        d: gradient_transform.sy,
-        e: gradient_transform.tx,
-        f: gradient_transform.ty,
     }
 }
 

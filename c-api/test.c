@@ -1,3 +1,6 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +57,9 @@ int main() {
     // We mainly interested in linking errors.
     assert(ttfp_fonts_in_collection(font_data, fsize) == -1);
 
-    ttfp_face *face = (ttfp_face*)alloca(ttfp_face_size_of());
+    ttfp_face *face = (ttfp_face*)malloc(ttfp_face_size_of());
+    assert(face != NULL);
+    assert(((uintptr_t)face % ttfp_face_align_of()) == 0);
     assert(ttfp_face_init(font_data, fsize, 0, face));
 
     uint16_t a_gid = ttfp_get_glyph_index(face, 0x0041); // A
@@ -147,6 +152,7 @@ int main() {
     assert(ttfp_get_glyph_name(face, a_gid, glyph_name));
     assert(strcmp(glyph_name, "A") == 0);
 
+    free(face);
     free(font_data);
 
     return 0;

@@ -304,18 +304,22 @@ impl<'a, T: FromData> LazyArray16<'a, T> {
     /// Returns sub-array.
     #[inline]
     pub fn slice(&self, range: Range<u16>) -> Option<Self> {
-        let start = usize::from(range.start) * T::SIZE;
-        let end = usize::from(range.end) * T::SIZE;
+        let start = usize::from(range.start).checked_mul(T::SIZE)?;
+        let end = usize::from(range.end).checked_mul(T::SIZE)?;
         Some(LazyArray16 {
             data: self.data.get(start..end)?,
             ..LazyArray16::default()
         })
     }
 
-    /// Returns array's length.
+    /// Returns array's length, capped at `u16::MAX`. Zero-sized elements yield zero.
     #[inline]
     pub fn len(&self) -> u16 {
-        (self.data.len() / T::SIZE) as u16
+        self.data
+            .len()
+            .checked_div(T::SIZE)
+            .unwrap_or(0)
+            .min(usize::from(u16::MAX)) as u16
     }
 
     /// Checks if array is empty.
@@ -463,10 +467,10 @@ impl<'a, T: FromData> LazyArray32<'a, T> {
         }
     }
 
-    /// Returns array's length.
+    /// Returns array's length, capped at `u32::MAX`. Zero-sized elements yield zero.
     #[inline]
     pub fn len(&self) -> u32 {
-        (self.data.len() / T::SIZE) as u32
+        u32::try_from(self.data.len().checked_div(T::SIZE).unwrap_or(0)).unwrap_or(u32::MAX)
     }
 
     /// Checks if the array is empty.
@@ -733,7 +737,8 @@ impl<'a> Stream<'a> {
     /// Doesn't check bounds.
     #[inline]
     pub fn advance(&mut self, len: usize) {
-        self.offset += len;
+        // Preserve an exhausted stream on overflow instead of wrapping back into input.
+        self.offset = self.offset.saturating_add(len);
     }
 
     /// Advances by the specified `len` and checks for bounds.
@@ -761,7 +766,8 @@ impl<'a> Stream<'a> {
     /// Parses the type from the steam at offset.
     #[inline]
     pub fn read_at<T: FromData>(data: &[u8], offset: usize) -> Option<T> {
-        data.get(offset..offset + T::SIZE).and_then(T::parse)
+        data.get(offset..offset.checked_add(T::SIZE)?)
+            .and_then(T::parse)
     }
 
     /// Reads N bytes from the stream.
@@ -790,7 +796,7 @@ impl<'a> Stream<'a> {
     /// Reads the next `count` types as a slice.
     #[inline]
     pub fn read_array16<T: FromData>(&mut self, count: u16) -> Option<LazyArray16<'a, T>> {
-        let len = usize::from(count) * T::SIZE;
+        let len = usize::from(count).checked_mul(T::SIZE)?;
         self.read_bytes(len).map(LazyArray16::new)
     }
 
@@ -927,6 +933,7 @@ pub fn i16_bound(min: i16, val: i16, max: i16) -> i16 {
 }
 
 #[inline]
+#[cfg(feature = "variable-fonts")]
 pub fn f32_bound(min: f32, val: f32, max: f32) -> f32 {
     debug_assert!(min.is_finite());
     debug_assert!(val.is_finite());
@@ -939,4 +946,35 @@ pub fn f32_bound(min: f32, val: f32, max: f32) -> f32 {
     }
 
     val
+}
+
+#[cfg(test)]
+mod boundary_tests {
+    use super::{FromData, LazyArray16, Stream};
+
+    struct Huge;
+    impl FromData for Huge {
+        const SIZE: usize = usize::MAX;
+        fn parse(_: &[u8]) -> Option<Self> {
+            Some(Self)
+        }
+    }
+
+    #[test]
+    fn offset_overflow_stays_exhausted() {
+        let mut stream = Stream::new(&[0]);
+        stream.advance(usize::MAX);
+        stream.advance(1);
+        assert!(stream.at_end());
+        assert!(stream.tail().is_none());
+        assert!(stream.read::<u8>().is_none());
+        assert!(Stream::read_at::<u16>(&[], usize::MAX).is_none());
+    }
+
+    #[test]
+    fn custom_element_size_overflow_is_rejected() {
+        assert!(Stream::new(&[]).read_array16::<Huge>(2).is_none());
+        assert!(Stream::new(&[]).read_array32::<Huge>(2).is_none());
+        assert!(LazyArray16::<Huge>::new(&[]).slice(1..2).is_none());
+    }
 }

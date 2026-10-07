@@ -1,9 +1,15 @@
 ## ttf-parser
 
-![Build Status](https://github.com/harfbuzz/ttf-parser/workflows/Rust/badge.svg)
+DataForge maintained fork of upstream `0c729122` (2026-08-06).
+See [FORK-MAINTENANCE.md](FORK-MAINTENANCE.md) for ownership, audit evidence,
+compatibility and the security notice that remains applicable to the registry release.
+
+The following maintenance-mode statement describes upstream:
+
+![Build Status](https://github.com/Platon7788/ttf-parser/actions/workflows/main.yml/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/ttf-parser.svg)](https://crates.io/crates/ttf-parser)
 [![Documentation](https://docs.rs/ttf-parser/badge.svg)](https://docs.rs/ttf-parser)
-[![Rust 1.88+](https://img.shields.io/badge/rust-1.88+-orange.svg)](https://www.rust-lang.org)
+[![Rust 1.99+](https://img.shields.io/badge/rust-1.99+-orange.svg)](https://www.rust-lang.org)
 ![Unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)
 
 > **This crate is in maintenance mode. Bug fixes only — no new features.**
@@ -23,7 +29,7 @@ A high-level, safe, zero-allocation font parser for
 
 Can be used as a Rust or C library.
 
-Requires Rust 1.88 and uses edition 2024.
+Requires Rust 1.99 and uses edition 2024.
 
 ### Features
 

@@ -90,12 +90,12 @@ impl<'a> ClipList<'a> {
         let offset = record.clip_box_offset.to_usize();
         self.data.get(offset..).and_then(|data| {
             let mut s = Stream::new(data);
-            let format = s.read::<u8>()?;
+            let _format = s.read::<u8>()?;
 
             #[cfg(not(feature = "variable-fonts"))]
             let deltas = [0.0, 0.0, 0.0, 0.0];
             #[cfg(feature = "variable-fonts")]
-            let deltas = if format == 2 {
+            let deltas = if _format == 2 {
                 let mut var_s = s.clone();
                 var_s.advance(8);
                 let var_index_base = var_s.read::<u32>()?;

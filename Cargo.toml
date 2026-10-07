@@ -11,11 +11,13 @@ keywords = ["ttf", "truetype", "opentype"]
 categories = ["parser-implementations"]
 license = "MIT OR Apache-2.0"
 description = "A high-level, safe, zero-allocation font parser for TrueType, OpenType, and AAT."
-repository = "https://github.com/harfbuzz/ttf-parser"
+repository = "https://github.com/Platon7788/ttf-parser"
 documentation = "https://docs.rs/ttf-parser/"
 readme = "README.md"
 edition = "2024"
-rust-version = "1.88.0"
+rust-version = "1.99"
+# Benchmarks are a separate package with their own bencher dependency.
+autobenches = false
 exclude = ["benches/", "tests/", "testing-tools/", "examples/", "meson.build"]
 
 [dependencies]
@@ -52,8 +54,15 @@ gvar-alloc = ["alloc"]
 [dev-dependencies]
 base64 = "0.23"
 pico-args = "0.5"
-tiny-skia-path = "0.12"
 xmlwriter = "0.1"
+
+[[example]]
+name = "font-info"
+required-features = ["std", "opentype-layout"]
+
+[[example]]
+name = "font2svg"
+required-features = ["std", "variable-fonts"]
 
 [package.metadata.typos.default]
 locale = "en-us"

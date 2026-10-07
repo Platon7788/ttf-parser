@@ -1,0 +1,8 @@
+{
+  "elements": 2505,
+  "changed_matrices": 10,
+  "max_point_error_over_1000_unit_square": 0.0001220703145689415,
+  "allowed_font_units": 0.01,
+  "all_non_matrix_attributes_identical": true,
+  "omitted_matrix_is_identity": true
+}

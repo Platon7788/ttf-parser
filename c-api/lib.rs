@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types)]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 use std::convert::TryFrom;
 use std::os::raw::{c_char, c_void};
@@ -157,12 +158,14 @@ pub struct ttfp_glyph_raster_image {
     pub len: u32,
 }
 
-fn face_from_ptr(face: *const ttfp_face) -> &'static ttf_parser::Face<'static> {
+// SAFETY: the caller supplies a live, initialized face and retains its font bytes.
+unsafe fn face_from_ptr<'a>(face: *const ttfp_face) -> &'a ttf_parser::Face<'a> {
     unsafe { &*(face as *const ttf_parser::Face) }
 }
 
 #[cfg(feature = "variable-fonts")]
-fn face_from_mut_ptr(face: *const ttfp_face) -> &'static mut ttf_parser::Face<'static> {
+// SAFETY: the caller exclusively borrows a live face and retains its font bytes.
+unsafe fn face_from_mut_ptr<'a>(face: *mut ttfp_face) -> &'a mut ttf_parser::Face<'a> {
     unsafe { &mut *(face as *mut ttf_parser::Face) }
 }
 
@@ -172,8 +175,17 @@ fn face_from_mut_ptr(face: *const ttfp_face) -> &'static mut ttf_parser::Face<'s
 /// @param len The size of the font data.
 /// @return Number of fonts or -1 when provided data is not a TrueType font collection
 ///         or when number of fonts is larger than INT_MAX.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_fonts_in_collection(data: *const c_char, len: usize) -> i32 {
+pub unsafe extern "C" fn ttfp_fonts_in_collection(data: *const c_char, len: usize) -> i32 {
+    if data.is_null() {
+        return -1;
+    }
     let data = unsafe { std::slice::from_raw_parts(data as *const _, len) };
     match ttf_parser::fonts_in_collection(data) {
         Some(n) => i32::try_from(n).unwrap_or(-1),
@@ -184,7 +196,7 @@ pub extern "C" fn ttfp_fonts_in_collection(data: *const c_char, len: usize) -> i
 /// @brief Creates a new font face parser.
 ///
 /// Since #ttfp_face is an opaque pointer, a caller should allocate it manually
-/// using #ttfp_face_size_of.
+/// using #ttfp_face_size_of with alignment from #ttfp_face_align_of.
 /// Deallocation is also handled by a caller.
 /// #ttfp_face doesn't use heap internally, so we can simply `free()` it without
 /// a dedicated `ttfp_face_deinit` function.
@@ -194,13 +206,22 @@ pub extern "C" fn ttfp_fonts_in_collection(data: *const c_char, len: usize) -> i
 /// @param index The font face index in a collection (typically *.ttc). 0 should be used for basic fonts.
 /// @param face A pointer to a #ttfp_face object.
 /// @return `true` on success.
+///
+/// # Safety
+/// `data` must be readable for `len` bytes, with `len <= isize::MAX`, and must
+/// remain alive and immutable while the initialized face is used. `face` must
+/// point to exclusively borrowed storage of `ttfp_face_size_of()` bytes with
+/// alignment `ttfp_face_align_of()`. It need not be initialized beforehand.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_face_init(
+pub unsafe extern "C" fn ttfp_face_init(
     data: *const c_char,
     len: usize,
     index: u32,
     face: *mut c_void,
 ) -> bool {
+    if data.is_null() || face.is_null() || !(face as usize).is_multiple_of(ttfp_face_align_of()) {
+        return false;
+    }
     // This method invokes a lot of parsing, so let's catch any panics just in case.
     std::panic::catch_unwind(|| {
         let data = unsafe { std::slice::from_raw_parts(data as *const _, len) };
@@ -209,11 +230,7 @@ pub extern "C" fn ttfp_face_init(
             Err(_) => return false,
         };
         unsafe {
-            std::ptr::copy(
-                &face_rs as *const ttf_parser::Face as _,
-                face,
-                ttfp_face_size_of(),
-            );
+            std::ptr::write(face.cast::<ttf_parser::Face<'_>>(), face_rs);
         }
 
         true
@@ -227,23 +244,41 @@ pub extern "C" fn ttfp_face_size_of() -> usize {
     std::mem::size_of::<ttf_parser::Face>()
 }
 
-/// @brief Returns the number of name records in the face.
+/// @brief Returns the required alignment of `ttfp_face` storage.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_name_records_count(face: *const ttfp_face) -> u16 {
-    face_from_ptr(face).names().len()
+pub extern "C" fn ttfp_face_align_of() -> usize {
+    std::mem::align_of::<ttf_parser::Face<'_>>()
+}
+
+/// @brief Returns the number of name records in the face.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ttfp_get_name_records_count(face: *const ttfp_face) -> u16 {
+    unsafe { face_from_ptr(face) }.names().len()
 }
 
 /// @brief Returns a name record.
 ///
 /// @param Record's index. The total amount can be obtained via #ttfp_get_name_records_count.
 /// @return `false` when `index` is out of range or `platform_id` is invalid.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_name_record(
+pub unsafe extern "C" fn ttfp_get_name_record(
     face: *const ttfp_face,
     index: u16,
     record: *mut ttfp_name_record,
 ) -> bool {
-    match face_from_ptr(face).names().get(index) {
+    match unsafe { face_from_ptr(face) }.names().get(index) {
         Some(rec) => {
             unsafe {
                 (*record).platform_id = match rec.platform_id {
@@ -275,14 +310,20 @@ pub extern "C" fn ttfp_get_name_record(
 /// @param len The size of a string buffer. Must be equal to `ttfp_name_record.name_size`.
 /// @return `false` when `index` is out of range or string buffer is not equal
 ///         `ttfp_name_record.name_size`.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_name_record_string(
+pub unsafe extern "C" fn ttfp_get_name_record_string(
     face: *const ttfp_face,
     index: u16,
     name: *mut c_char,
     len: usize,
 ) -> bool {
-    match face_from_ptr(face).names().get(index) {
+    match unsafe { face_from_ptr(face) }.names().get(index) {
         Some(r) => {
             let r_name = r.name;
             if r_name.len() != len {
@@ -304,106 +345,184 @@ pub extern "C" fn ttfp_get_name_record_string(
 /// @brief Checks that face is marked as *Regular*.
 ///
 /// @return `false` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_is_regular(face: *const ttfp_face) -> bool {
-    face_from_ptr(face).is_regular()
+pub unsafe extern "C" fn ttfp_is_regular(face: *const ttfp_face) -> bool {
+    unsafe { face_from_ptr(face) }.is_regular()
 }
 
 /// @brief Checks that face is marked as *Italic*.
 ///
 /// @return `false` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_is_italic(face: *const ttfp_face) -> bool {
-    face_from_ptr(face).is_italic()
+pub unsafe extern "C" fn ttfp_is_italic(face: *const ttfp_face) -> bool {
+    unsafe { face_from_ptr(face) }.is_italic()
 }
 
 /// @brief Checks that face is marked as *Bold*.
 ///
 /// @return `false` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_is_bold(face: *const ttfp_face) -> bool {
-    face_from_ptr(face).is_bold()
+pub unsafe extern "C" fn ttfp_is_bold(face: *const ttfp_face) -> bool {
+    unsafe { face_from_ptr(face) }.is_bold()
 }
 
 /// @brief Checks that face is marked as *Oblique*.
 ///
 /// @return `false` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_is_oblique(face: *const ttfp_face) -> bool {
-    face_from_ptr(face).is_oblique()
+pub unsafe extern "C" fn ttfp_is_oblique(face: *const ttfp_face) -> bool {
+    unsafe { face_from_ptr(face) }.is_oblique()
 }
 
 /// @brief Checks that face is marked as *Monospaced*.
 ///
 /// @return `false` when `post` table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_is_monospaced(face: *const ttfp_face) -> bool {
-    face_from_ptr(face).is_monospaced()
+pub unsafe extern "C" fn ttfp_is_monospaced(face: *const ttfp_face) -> bool {
+    unsafe { face_from_ptr(face) }.is_monospaced()
 }
 
 /// @brief Checks that face is variable.
 ///
 /// Simply checks the presence of a `fvar` table.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_is_variable(face: *const ttfp_face) -> bool {
-    face_from_ptr(face).is_variable()
+pub unsafe extern "C" fn ttfp_is_variable(face: *const ttfp_face) -> bool {
+    unsafe { face_from_ptr(face) }.is_variable()
 }
 
 /// @brief Returns face's weight.
 ///
 /// @return Face's weight or `400` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_weight(face: *const ttfp_face) -> u16 {
-    face_from_ptr(face).weight().to_number()
+pub unsafe extern "C" fn ttfp_get_weight(face: *const ttfp_face) -> u16 {
+    unsafe { face_from_ptr(face) }.weight().to_number()
 }
 
 /// @brief Returns face's width.
 ///
 /// @return Face's width in a 1..9 range or `5` when OS/2 table is not present
 ///         or when value is invalid.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_width(face: *const ttfp_face) -> u16 {
-    face_from_ptr(face).width().to_number()
+pub unsafe extern "C" fn ttfp_get_width(face: *const ttfp_face) -> u16 {
+    unsafe { face_from_ptr(face) }.width().to_number()
 }
 
 /// @brief Returns face's italic angle.
 ///
 /// @return Face's italic angle or `0.0` when `post` table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_italic_angle(face: *const ttfp_face) -> f32 {
-    face_from_ptr(face).italic_angle()
+pub unsafe extern "C" fn ttfp_get_italic_angle(face: *const ttfp_face) -> f32 {
+    unsafe { face_from_ptr(face) }.italic_angle()
 }
 
 /// @brief Returns a horizontal face ascender.
 ///
 /// This function is affected by variation axes.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_ascender(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).ascender()
+pub unsafe extern "C" fn ttfp_get_ascender(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }.ascender()
 }
 
 /// @brief Returns a horizontal face descender.
 ///
 /// This function is affected by variation axes.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_descender(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).descender()
+pub unsafe extern "C" fn ttfp_get_descender(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }.descender()
 }
 
 /// @brief Returns a horizontal face height.
 ///
 /// This function is affected by variation axes.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_height(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).height()
+pub unsafe extern "C" fn ttfp_get_height(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }.height()
 }
 
 /// @brief Returns a horizontal face line gap.
 ///
 /// This function is affected by variation axes.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_line_gap(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).line_gap()
+pub unsafe extern "C" fn ttfp_get_line_gap(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }.line_gap()
 }
 
 /// @brief Returns a horizontal typographic face ascender.
@@ -414,9 +533,17 @@ pub extern "C" fn ttfp_get_line_gap(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return `0` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_typographic_ascender(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).typographic_ascender().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_typographic_ascender(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .typographic_ascender()
+        .unwrap_or(0)
 }
 
 /// @brief Returns a horizontal typographic face descender.
@@ -427,9 +554,17 @@ pub extern "C" fn ttfp_get_typographic_ascender(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return `0` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_typographic_descender(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).typographic_descender().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_typographic_descender(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .typographic_descender()
+        .unwrap_or(0)
 }
 
 /// @brief Returns a horizontal typographic face line gap.
@@ -440,9 +575,17 @@ pub extern "C" fn ttfp_get_typographic_descender(face: *const ttfp_face) -> i16 
 /// This function is affected by variation axes.
 ///
 /// @return `0` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_typographic_line_gap(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).typographic_line_gap().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_typographic_line_gap(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .typographic_line_gap()
+        .unwrap_or(0)
 }
 
 /// @brief Returns a vertical face ascender.
@@ -450,9 +593,17 @@ pub extern "C" fn ttfp_get_typographic_line_gap(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return `0` when `vhea` table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_vertical_ascender(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).vertical_ascender().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_vertical_ascender(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .vertical_ascender()
+        .unwrap_or(0)
 }
 
 /// @brief Returns a vertical face descender.
@@ -460,9 +611,17 @@ pub extern "C" fn ttfp_get_vertical_ascender(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return `0` when `vhea` table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_vertical_descender(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).vertical_descender().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_vertical_descender(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .vertical_descender()
+        .unwrap_or(0)
 }
 
 /// @brief Returns a vertical face height.
@@ -470,9 +629,17 @@ pub extern "C" fn ttfp_get_vertical_descender(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return `0` when `vhea` table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_vertical_height(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).vertical_height().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_vertical_height(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .vertical_height()
+        .unwrap_or(0)
 }
 
 /// @brief Returns a vertical face line gap.
@@ -480,17 +647,31 @@ pub extern "C" fn ttfp_get_vertical_height(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return `0` when `vhea` table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_vertical_line_gap(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).vertical_line_gap().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_vertical_line_gap(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .vertical_line_gap()
+        .unwrap_or(0)
 }
 
 /// @brief Returns face's units per EM.
 ///
 /// @return Units in a 16..16384 range or `0` otherwise.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_units_per_em(face: *const ttfp_face) -> u16 {
-    face_from_ptr(face).units_per_em()
+pub unsafe extern "C" fn ttfp_get_units_per_em(face: *const ttfp_face) -> u16 {
+    unsafe { face_from_ptr(face) }.units_per_em()
 }
 
 /// @brief Returns face's x height.
@@ -498,9 +679,15 @@ pub extern "C" fn ttfp_get_units_per_em(face: *const ttfp_face) -> u16 {
 /// This function is affected by variation axes.
 ///
 /// @return x height or 0 when OS/2 table is not present or when its version is < 2.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_x_height(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).x_height().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_x_height(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }.x_height().unwrap_or(0)
 }
 
 /// @brief Returns face's capital height.
@@ -508,9 +695,15 @@ pub extern "C" fn ttfp_get_x_height(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return capital height or 0 when OS/2 table is not present or when its version is < 2.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_capital_height(face: *const ttfp_face) -> i16 {
-    face_from_ptr(face).capital_height().unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_capital_height(face: *const ttfp_face) -> i16 {
+    unsafe { face_from_ptr(face) }.capital_height().unwrap_or(0)
 }
 
 /// @brief Returns face's underline metrics.
@@ -518,12 +711,18 @@ pub extern "C" fn ttfp_get_capital_height(face: *const ttfp_face) -> i16 {
 /// This function is affected by variation axes.
 ///
 /// @return `false` when `post` table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_underline_metrics(
+pub unsafe extern "C" fn ttfp_get_underline_metrics(
     face: *const ttfp_face,
     metrics: *mut ttf_parser::LineMetrics,
 ) -> bool {
-    match face_from_ptr(face).underline_metrics() {
+    match unsafe { face_from_ptr(face) }.underline_metrics() {
         Some(m) => {
             unsafe {
                 *metrics = m;
@@ -539,12 +738,18 @@ pub extern "C" fn ttfp_get_underline_metrics(
 /// This function is affected by variation axes.
 ///
 /// @return `false` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_strikeout_metrics(
+pub unsafe extern "C" fn ttfp_get_strikeout_metrics(
     face: *const ttfp_face,
     metrics: *mut ttf_parser::LineMetrics,
 ) -> bool {
-    match face_from_ptr(face).strikeout_metrics() {
+    match unsafe { face_from_ptr(face) }.strikeout_metrics() {
         Some(m) => {
             unsafe {
                 *metrics = m;
@@ -560,12 +765,18 @@ pub extern "C" fn ttfp_get_strikeout_metrics(
 /// This function is affected by variation axes.
 ///
 /// @return `false` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_subscript_metrics(
+pub unsafe extern "C" fn ttfp_get_subscript_metrics(
     face: *const ttfp_face,
     metrics: *mut ttf_parser::ScriptMetrics,
 ) -> bool {
-    match face_from_ptr(face).subscript_metrics() {
+    match unsafe { face_from_ptr(face) }.subscript_metrics() {
         Some(m) => {
             unsafe {
                 *metrics = m;
@@ -581,12 +792,18 @@ pub extern "C" fn ttfp_get_subscript_metrics(
 /// This function is affected by variation axes.
 ///
 /// @return `false` when OS/2 table is not present.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_superscript_metrics(
+pub unsafe extern "C" fn ttfp_get_superscript_metrics(
     face: *const ttfp_face,
     metrics: *mut ttf_parser::ScriptMetrics,
 ) -> bool {
-    match face_from_ptr(face).superscript_metrics() {
+    match unsafe { face_from_ptr(face) }.superscript_metrics() {
         Some(m) => {
             unsafe {
                 *metrics = m;
@@ -600,9 +817,15 @@ pub extern "C" fn ttfp_get_superscript_metrics(
 /// @brief Returns a total number of glyphs in the face.
 ///
 /// @return The number of glyphs which is never zero.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_number_of_glyphs(face: *const ttfp_face) -> u16 {
-    face_from_ptr(face).number_of_glyphs()
+pub unsafe extern "C" fn ttfp_get_number_of_glyphs(face: *const ttfp_face) -> u16 {
+    unsafe { face_from_ptr(face) }.number_of_glyphs()
 }
 
 /// @brief Resolves a Glyph ID for a code point.
@@ -611,13 +834,21 @@ pub extern "C" fn ttfp_get_number_of_glyphs(face: *const ttfp_face) -> u16 {
 ///
 /// @param codepoint A valid Unicode codepoint. Otherwise 0 will be returned.
 /// @return Returns 0 when glyph is not present or parsing is failed.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_index(face: *const ttfp_face, codepoint: u32) -> u16 {
+pub unsafe extern "C" fn ttfp_get_glyph_index(face: *const ttfp_face, codepoint: u32) -> u16 {
     // This method invokes a lot of parsing, so let's catch any panics just in case.
     std::panic::catch_unwind(|| {
         let get = || {
             let c = char::try_from(codepoint).ok()?;
-            face_from_ptr(face).glyph_index(c).map(|gid| gid.0)
+            unsafe { face_from_ptr(face) }
+                .glyph_index(c)
+                .map(|gid| gid.0)
         };
 
         get().unwrap_or(0)
@@ -630,8 +861,14 @@ pub extern "C" fn ttfp_get_glyph_index(face: *const ttfp_face, codepoint: u32) -
 /// @param codepoint A valid Unicode codepoint. Otherwise 0 will be returned.
 /// @param variation A valid Unicode codepoint. Otherwise 0 will be returned.
 /// @return Returns 0 when glyph is not present or parsing is failed.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_var_index(
+pub unsafe extern "C" fn ttfp_get_glyph_var_index(
     face: *const ttfp_face,
     codepoint: u32,
     variation: u32,
@@ -641,7 +878,7 @@ pub extern "C" fn ttfp_get_glyph_var_index(
         let get = || {
             let c = char::try_from(codepoint).ok()?;
             let v = char::try_from(variation).ok()?;
-            face_from_ptr(face)
+            unsafe { face_from_ptr(face) }
                 .glyph_variation_index(c, v)
                 .map(|gid| gid.0)
         };
@@ -654,9 +891,20 @@ pub extern "C" fn ttfp_get_glyph_var_index(
 /// @brief Returns glyph's horizontal advance.
 ///
 /// @return Glyph's advance or 0 when not set.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_hor_advance(face: *const ttfp_face, glyph_id: GlyphId) -> u16 {
-    face_from_ptr(face).glyph_hor_advance(glyph_id).unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_glyph_hor_advance(
+    face: *const ttfp_face,
+    glyph_id: GlyphId,
+) -> u16 {
+    unsafe { face_from_ptr(face) }
+        .glyph_hor_advance(glyph_id)
+        .unwrap_or(0)
 }
 
 /// @brief Returns glyph's vertical advance.
@@ -664,20 +912,37 @@ pub extern "C" fn ttfp_get_glyph_hor_advance(face: *const ttfp_face, glyph_id: G
 /// This function is affected by variation axes.
 ///
 /// @return Glyph's advance or 0 when not set.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_ver_advance(face: *const ttfp_face, glyph_id: GlyphId) -> u16 {
-    face_from_ptr(face).glyph_ver_advance(glyph_id).unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_glyph_ver_advance(
+    face: *const ttfp_face,
+    glyph_id: GlyphId,
+) -> u16 {
+    unsafe { face_from_ptr(face) }
+        .glyph_ver_advance(glyph_id)
+        .unwrap_or(0)
 }
 
 /// @brief Returns glyph's horizontal side bearing.
 ///
 /// @return Glyph's side bearing or 0 when not set.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_hor_side_bearing(
+pub unsafe extern "C" fn ttfp_get_glyph_hor_side_bearing(
     face: *const ttfp_face,
     glyph_id: GlyphId,
 ) -> i16 {
-    face_from_ptr(face)
+    unsafe { face_from_ptr(face) }
         .glyph_hor_side_bearing(glyph_id)
         .unwrap_or(0)
 }
@@ -687,12 +952,18 @@ pub extern "C" fn ttfp_get_glyph_hor_side_bearing(
 /// This function is affected by variation axes.
 ///
 /// @return Glyph's side bearing or 0 when not set.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_ver_side_bearing(
+pub unsafe extern "C" fn ttfp_get_glyph_ver_side_bearing(
     face: *const ttfp_face,
     glyph_id: GlyphId,
 ) -> i16 {
-    face_from_ptr(face)
+    unsafe { face_from_ptr(face) }
         .glyph_ver_side_bearing(glyph_id)
         .unwrap_or(0)
 }
@@ -700,9 +971,17 @@ pub extern "C" fn ttfp_get_glyph_ver_side_bearing(
 /// @brief Returns glyph's vertical origin.
 ///
 /// @return Glyph's vertical origin or 0 when not set.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_y_origin(face: *const ttfp_face, glyph_id: GlyphId) -> i16 {
-    face_from_ptr(face).glyph_y_origin(glyph_id).unwrap_or(0)
+pub unsafe extern "C" fn ttfp_get_glyph_y_origin(face: *const ttfp_face, glyph_id: GlyphId) -> i16 {
+    unsafe { face_from_ptr(face) }
+        .glyph_y_origin(glyph_id)
+        .unwrap_or(0)
 }
 
 /// @brief Returns glyph's name.
@@ -713,13 +992,19 @@ pub extern "C" fn ttfp_get_glyph_y_origin(face: *const ttfp_face, glyph_id: Glyp
 ///
 /// @param name A char buffer larger than 256 bytes.
 /// @return `true` on success.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_name(
+pub unsafe extern "C" fn ttfp_get_glyph_name(
     face: *const ttfp_face,
     glyph_id: GlyphId,
     name: *mut c_char,
 ) -> bool {
-    match face_from_ptr(face).glyph_name(glyph_id) {
+    match unsafe { face_from_ptr(face) }.glyph_name(glyph_id) {
         Some(n) => {
             // The output buffer is 256 bytes and must fit the name plus a
             // trailing '\0'. Unlike `post` names, a CFF glyph name has no
@@ -757,8 +1042,14 @@ pub extern "C" fn ttfp_get_glyph_name(
 /// This function is affected by variation axes.
 ///
 /// @return `false` when glyph has no outline or on error.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_outline_glyph(
+pub unsafe extern "C" fn ttfp_outline_glyph(
     face: *const ttfp_face,
     builder: ttfp_outline_builder,
     user_data: *mut c_void,
@@ -768,7 +1059,7 @@ pub extern "C" fn ttfp_outline_glyph(
     // This method invokes a lot of parsing, so let's catch any panics just in case.
     std::panic::catch_unwind(|| {
         let mut b = Builder(builder, user_data);
-        match face_from_ptr(face).outline_glyph(glyph_id, &mut b) {
+        match unsafe { face_from_ptr(face) }.outline_glyph(glyph_id, &mut b) {
             Some(bb) => {
                 unsafe { *bbox = bb }
                 true
@@ -786,27 +1077,41 @@ pub extern "C" fn ttfp_outline_glyph(
 /// we have to actually outline a glyph to find it's bounding box.
 ///
 /// This function is affected by variation axes.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_bbox(
+pub unsafe extern "C" fn ttfp_get_glyph_bbox(
     face: *const ttfp_face,
     glyph_id: GlyphId,
     bbox: *mut ttf_parser::Rect,
 ) -> bool {
     // This method invokes a lot of parsing, so let's catch any panics just in case.
-    std::panic::catch_unwind(|| match face_from_ptr(face).glyph_bounding_box(glyph_id) {
-        Some(bb) => {
-            unsafe { *bbox = bb }
-            true
-        }
-        None => false,
-    })
+    std::panic::catch_unwind(
+        || match unsafe { face_from_ptr(face) }.glyph_bounding_box(glyph_id) {
+            Some(bb) => {
+                unsafe { *bbox = bb }
+                true
+            }
+            None => false,
+        },
+    )
     .unwrap_or(false)
 }
 
 /// @brief Returns a bounding box that large enough to enclose any glyph from the face.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_global_bounding_box(face: *const ttfp_face) -> ttf_parser::Rect {
-    face_from_ptr(face).global_bounding_box()
+pub unsafe extern "C" fn ttfp_get_global_bounding_box(face: *const ttfp_face) -> ttf_parser::Rect {
+    unsafe { face_from_ptr(face) }.global_bounding_box()
 }
 
 /// @brief Returns a reference to a glyph's raster image.
@@ -829,14 +1134,20 @@ pub extern "C" fn ttfp_get_global_bounding_box(face: *const ttfp_face) -> ttf_pa
 /// and this method supports most of them.
 /// This includes `sbix`, `bloc` + `bdat`, `EBLC` + `EBDT`, `CBLC` + `CBDT`.
 /// And font's tables will be accesses in this specific order.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_raster_image(
+pub unsafe extern "C" fn ttfp_get_glyph_raster_image(
     face: *const ttfp_face,
     glyph_id: GlyphId,
     pixels_per_em: u16,
     glyph_image: *mut ttfp_glyph_raster_image,
 ) -> bool {
-    match face_from_ptr(face).glyph_raster_image(glyph_id, pixels_per_em) {
+    match unsafe { face_from_ptr(face) }.glyph_raster_image(glyph_id, pixels_per_em) {
         Some(image) => {
             unsafe {
                 *glyph_image = ttfp_glyph_raster_image {
@@ -894,14 +1205,20 @@ pub extern "C" fn ttfp_get_glyph_raster_image(
 ///
 /// Also, a font can contain both: images and outlines. So when this method returns `false`
 /// you should also try `ttfp_outline_glyph()` afterwards.
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_glyph_svg_image(
+pub unsafe extern "C" fn ttfp_get_glyph_svg_image(
     face: *const ttfp_face,
     glyph_id: GlyphId,
     svg: *mut *const c_char,
     len: *mut u32,
 ) -> bool {
-    match face_from_ptr(face).glyph_svg_image(glyph_id) {
+    match unsafe { face_from_ptr(face) }.glyph_svg_image(glyph_id) {
         Some(image) => {
             unsafe {
                 *svg = image.data.as_ptr() as *const c_char;
@@ -916,20 +1233,32 @@ pub extern "C" fn ttfp_get_glyph_svg_image(
 
 /// @brief Returns the amount of variation axes.
 #[cfg(feature = "variable-fonts")]
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_variation_axes_count(face: *const ttfp_face) -> u16 {
-    face_from_ptr(face).variation_axes().len()
+pub unsafe extern "C" fn ttfp_get_variation_axes_count(face: *const ttfp_face) -> u16 {
+    unsafe { face_from_ptr(face) }.variation_axes().len()
 }
 
 /// @brief Returns a variation axis by index.
 #[cfg(feature = "variable-fonts")]
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_variation_axis(
+pub unsafe extern "C" fn ttfp_get_variation_axis(
     face: *const ttfp_face,
     index: u16,
     axis: *mut ttf_parser::VariationAxis,
 ) -> bool {
-    match face_from_ptr(face).variation_axes().get(index) {
+    match unsafe { face_from_ptr(face) }.variation_axes().get(index) {
         Some(a) => {
             unsafe { *axis = a };
             true
@@ -940,13 +1269,19 @@ pub extern "C" fn ttfp_get_variation_axis(
 
 /// @brief Returns a variation axis by tag.
 #[cfg(feature = "variable-fonts")]
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_variation_axis_by_tag(
+pub unsafe extern "C" fn ttfp_get_variation_axis_by_tag(
     face: *const ttfp_face,
     tag: ttf_parser::Tag,
     axis: *mut ttf_parser::VariationAxis,
 ) -> bool {
-    match face_from_ptr(face)
+    match unsafe { face_from_ptr(face) }
         .variation_axes()
         .into_iter()
         .find(|axis| axis.tag == tag)
@@ -971,30 +1306,71 @@ pub extern "C" fn ttfp_get_variation_axis_by_tag(
 ///
 /// @return `false` when face is not variable or doesn't have such axis.
 #[cfg(feature = "variable-fonts")]
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_set_variation(face: *mut ttfp_face, axis: Tag, value: f32) -> bool {
-    face_from_mut_ptr(face).set_variation(axis, value).is_some()
+pub unsafe extern "C" fn ttfp_set_variation(face: *mut ttfp_face, axis: Tag, value: f32) -> bool {
+    unsafe { face_from_mut_ptr(face) }
+        .set_variation(axis, value)
+        .is_some()
 }
 
 /// @brief Returns the current normalized variation coordinates.
 ///
 /// Values represented as f2.16
 #[cfg(feature = "variable-fonts")]
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_get_variation_coordinates(face: *const ttfp_face) -> *const i16 {
-    face_from_ptr(face).variation_coordinates().as_ptr() as _
+pub unsafe extern "C" fn ttfp_get_variation_coordinates(face: *const ttfp_face) -> *const i16 {
+    unsafe { face_from_ptr(face) }
+        .variation_coordinates()
+        .as_ptr() as _
 }
 
 /// @brief Checks that face has non-default variation coordinates.
 #[cfg(feature = "variable-fonts")]
+///
+/// # Safety
+/// Input pointers must refer to live, aligned objects of the documented extent.
+/// A face must be successfully initialized and its font bytes must remain alive.
+/// Writable buffers and mutable faces must be exclusively borrowed; callbacks
+/// must be valid, must uphold their pointer contracts and must not unwind.
 #[unsafe(no_mangle)]
-pub extern "C" fn ttfp_has_non_default_variation_coordinates(face: *const ttfp_face) -> bool {
-    face_from_ptr(face).has_non_default_variation_coordinates()
+pub unsafe extern "C" fn ttfp_has_non_default_variation_coordinates(
+    face: *const ttfp_face,
+) -> bool {
+    unsafe { face_from_ptr(face) }.has_non_default_variation_coordinates()
 }
 
 #[cfg(test)]
 mod tests {
     use ttf_parser::GlyphId;
+
+    #[test]
+    fn face_initialization_rejects_null_and_misaligned_storage() {
+        let font = include_bytes!("../tests/fonts/demo.ttf");
+        let mut storage = std::mem::MaybeUninit::<ttf_parser::Face<'_>>::uninit();
+        let ptr = storage.as_mut_ptr().cast::<std::os::raw::c_void>();
+        assert!(super::ttfp_face_align_of() > 1);
+        assert!(!unsafe { super::ttfp_face_init(std::ptr::null(), 0, 0, ptr) });
+        assert!(!unsafe {
+            super::ttfp_face_init(font.as_ptr().cast(), font.len(), 0, std::ptr::null_mut())
+        });
+        // The rejected pointer stays in the allocation; no Face reference is formed.
+        let unaligned = ptr.cast::<u8>().wrapping_add(1).cast();
+        assert!(!unsafe { super::ttfp_face_init(font.as_ptr().cast(), font.len(), 0, unaligned) });
+        assert!(unsafe { super::ttfp_face_init(font.as_ptr().cast(), font.len(), 0, ptr) });
+        assert!(unsafe { super::ttfp_get_number_of_glyphs(ptr.cast()) } > 0);
+    }
 
     #[test]
     fn sizes() {
@@ -1010,14 +1386,11 @@ mod tests {
     fn glyph_name_too_long_returns_false() {
         let font = build_cff_font_with_glyph_name(300);
 
-        let mut face_buf = vec![0u8; super::ttfp_face_size_of()];
-        let face_ptr = face_buf.as_mut_ptr() as *mut std::os::raw::c_void;
-        assert!(super::ttfp_face_init(
-            font.as_ptr() as *const _,
-            font.len(),
-            0,
-            face_ptr,
-        ));
+        let mut face_buf = std::mem::MaybeUninit::<ttf_parser::Face<'_>>::uninit();
+        let face_ptr = face_buf.as_mut_ptr().cast::<std::os::raw::c_void>();
+        assert!(unsafe {
+            super::ttfp_face_init(font.as_ptr() as *const _, font.len(), 0, face_ptr)
+        });
         let face = face_ptr as *const super::ttfp_face;
 
         // The documented output buffer size.
@@ -1025,11 +1398,13 @@ mod tests {
 
         // Glyph 1 has a 300-byte CFF name: it cannot fit, so this must fail
         // gracefully rather than abort.
-        let ok = super::ttfp_get_glyph_name(face, GlyphId(1), name.as_mut_ptr() as *mut _);
+        let ok =
+            unsafe { super::ttfp_get_glyph_name(face, GlyphId(1), name.as_mut_ptr() as *mut _) };
         assert!(!ok, "over-long glyph name must return false, not abort");
 
         // Regression guard: a normal short name (glyph 0 = ".notdef") still works.
-        let ok = super::ttfp_get_glyph_name(face, GlyphId(0), name.as_mut_ptr() as *mut _);
+        let ok =
+            unsafe { super::ttfp_get_glyph_name(face, GlyphId(0), name.as_mut_ptr() as *mut _) };
         assert!(ok);
         let nul = name.iter().position(|&b| b == 0).unwrap();
         assert_eq!(&name[..nul], b".notdef");
@@ -1078,7 +1453,7 @@ mod tests {
         cff.push(2); // offSize = 2
         cff.extend_from_slice(&1u16.to_be_bytes()); // offset[0]
         cff.extend_from_slice(&((1 + name_len) as u16).to_be_bytes()); // offset[1]
-        cff.extend(std::iter::repeat(b'A').take(name_len));
+        cff.extend(std::iter::repeat_n(b'A', name_len));
         // Global Subrs INDEX (empty)
         cff.extend_from_slice(&[0, 0]);
         // Charset: format 0, glyph 1 -> SID 391 (first custom string)
@@ -1137,7 +1512,7 @@ mod tests {
             (&maxp, maxp.len()),
         ] {
             font.extend_from_slice(data);
-            font.extend(std::iter::repeat(0).take(pad(len)));
+            font.extend(std::iter::repeat_n(0, pad(len)));
         }
         font.extend_from_slice(&cff);
         font

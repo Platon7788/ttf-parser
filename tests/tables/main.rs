@@ -1,4 +1,6 @@
+#[cfg(feature = "apple-layout")]
 #[rustfmt::skip] mod aat;
+#[cfg(feature = "apple-layout")]
 #[rustfmt::skip] mod ankr;
 #[cfg(feature = "variable-fonts")]
 #[rustfmt::skip] mod avar;
@@ -7,6 +9,7 @@
 #[rustfmt::skip] mod cff2;
 #[rustfmt::skip] mod cmap;
 #[rustfmt::skip] mod colr;
+#[cfg(feature = "apple-layout")]
 #[rustfmt::skip] mod feat;
 #[cfg(feature = "variable-fonts")]
 #[rustfmt::skip] mod fvar;
@@ -19,9 +22,10 @@
 #[rustfmt::skip] mod maxp;
 #[rustfmt::skip] mod panose;
 #[rustfmt::skip] mod sbix;
+#[cfg(feature = "apple-layout")]
 #[rustfmt::skip] mod trak;
 
-use ttf_parser::{fonts_in_collection, Face, FaceParsingError};
+use ttf_parser::{Face, FaceParsingError, fonts_in_collection};
 
 #[allow(dead_code)]
 #[derive(Clone, Copy)]

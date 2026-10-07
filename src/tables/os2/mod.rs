@@ -586,17 +586,19 @@ impl<'a> Table<'a> {
         Stream::read_at::<i16>(self.data, TYPO_LINE_GAP_OFFSET).unwrap_or(0)
     }
 
-    /// Returns Windows ascender.
+    /// Returns Windows ascender, saturating unsigned values above `i16::MAX`.
     #[inline]
     pub fn windows_ascender(&self) -> i16 {
-        Stream::read_at::<i16>(self.data, WIN_ASCENT).unwrap_or(0)
+        let value = Stream::read_at::<u16>(self.data, WIN_ASCENT).unwrap_or(0);
+        i16::try_from(value).unwrap_or(i16::MAX)
     }
 
-    /// Returns Windows descender.
+    /// Returns Windows descender, saturating differences below `i16::MIN`.
     #[inline]
     pub fn windows_descender(&self) -> i16 {
-        // Should be negated.
-        -Stream::read_at::<i16>(self.data, WIN_DESCENT).unwrap_or(0)
+        // The font stores an unsigned magnitude; negate in a wider signed type.
+        let value = Stream::read_at::<u16>(self.data, WIN_DESCENT).unwrap_or(0);
+        i16::try_from(-i32::from(value)).unwrap_or(i16::MIN)
     }
 
     /// Returns x height.

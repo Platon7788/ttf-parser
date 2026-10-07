@@ -1,6 +1,6 @@
 QT       += widgets
 
-CONFIG += c++14
+CONFIG += c++17
 
 CONFIG(release, debug|release): LIBS += -L$$PWD/../../c-api/target/release/ -lttfparser
 else:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../c-api/target/debug/ -lttfparser

@@ -11,7 +11,7 @@ mod format0 {
         ]);
 
         // Map (only) codepoint 0x40 to 100.
-        data.extend(std::iter::repeat(0).take(256));
+        data.extend(std::iter::repeat_n(0, 256));
         data[6 + 0x40] = 100;
 
         let subtable = cmap::Subtable0::parse(&data).unwrap();
@@ -41,7 +41,7 @@ mod format2 {
         ]);
 
         // Make only high byte 0x28 multi-byte.
-        data.extend(std::iter::repeat(0x00).take(256 * U16_SIZE));
+        data.extend(std::iter::repeat_n(0x00, 256 * U16_SIZE));
         data[6 + 0x28 * U16_SIZE + 1] = 0x08;
 
         data.extend(convert(&[
@@ -75,7 +75,7 @@ mod format2 {
         ]);
 
         // Only single bytes.
-        data.extend(std::iter::repeat(0x00).take(256 * U16_SIZE));
+        data.extend(std::iter::repeat_n(0x00, 256 * U16_SIZE));
         data.extend(convert(&[
             // First sub header (for single byte mapping)
             UInt16(40), // first code

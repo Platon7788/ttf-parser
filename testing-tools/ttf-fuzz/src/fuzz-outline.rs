@@ -1,15 +1,15 @@
-#[macro_use]
-extern crate afl;
+#![no_main]
 
-fn main() {
-    afl::fuzz!(|data: &[u8]| {
-        if let Some(face) = ttf_parser::Face::parse(data, 0) {
-            for id in 0..face.number_of_glyphs() {
-                let _ = face.outline_glyph(ttf_parser::GlyphId(id), &mut Builder(0));
-            }
+libfuzzer_sys::fuzz_target!(|data: &[u8]| {
+    if let Ok(face) = ttf_parser::Face::parse(data, 0) {
+        // One sampled glyph per input bounds harness work independently of glyph count.
+        let id = data.last().copied().map(u16::from).unwrap_or(0)
+            | (u16::from(data.first().copied().unwrap_or(0)) << 8);
+        for id in [0, id, face.number_of_glyphs().saturating_sub(1)] {
+            let _ = face.outline_glyph(ttf_parser::GlyphId(id), &mut Builder(0));
         }
-    });
-}
+    }
+});
 
 struct Builder(usize);
 

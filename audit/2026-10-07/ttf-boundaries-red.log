@@ -1,0 +1,43 @@
+   Compiling ttf-parser v0.25.1 (D:\GitHub\Rust_Projects\ttf-parser-dataforge)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.60s
+     Running tests\fork_robustness.rs (target\debug\deps\fork_robustness-42d20582f6d0aedc.exe)
+
+running 6 tests
+test face_metric_extremes_saturate ... ok
+test public_lazy_arrays_have_bounded_counts_and_accept_zero_sized_types ... FAILED
+test normalized_coordinates_accept_nonfinite_inputs_without_panicking ... FAILED
+test rectangle_extremes_are_profile_independent ... ok
+test windows_metrics_use_unsigned_font_values ... FAILED
+test hostile_font_smoke ... ok
+
+failures:
+
+---- public_lazy_arrays_have_bounded_counts_and_accept_zero_sized_types stdout ----
+
+thread 'public_lazy_arrays_have_bounded_counts_and_accept_zero_sized_types' (32264) panicked at tests\fork_robustness.rs:107:5:
+assertion `left == right` failed
+  left: 0
+ right: 65535
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- normalized_coordinates_accept_nonfinite_inputs_without_panicking stdout ----
+
+thread 'normalized_coordinates_accept_nonfinite_inputs_without_panicking' (8152) panicked at src\parser.rs:932:5:
+assertion failed: val.is_finite()
+
+---- windows_metrics_use_unsigned_font_values stdout ----
+
+thread 'windows_metrics_use_unsigned_font_values' (30356) panicked at tests\fork_robustness.rs:98:9:
+assertion `left == right` failed
+  left: -32768
+ right: 32767
+
+
+failures:
+    normalized_coordinates_accept_nonfinite_inputs_without_panicking
+    public_lazy_arrays_have_bounded_counts_and_accept_zero_sized_types
+    windows_metrics_use_unsigned_font_values
+
+test result: FAILED. 3 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+error: test failed, to rerun pass `--test fork_robustness`

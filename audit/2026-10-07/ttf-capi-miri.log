@@ -1,0 +1,12 @@
+   Compiling ttf-parser v0.25.1 (D:\GitHub\Rust_Projects\ttf-parser-dataforge)
+   Compiling ttf-parser-capi v0.25.1 (D:\GitHub\Rust_Projects\ttf-parser-dataforge\c-api)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.71s
+     Running unittests lib.rs (c-api\target\miri\x86_64-unknown-linux-gnu\debug\build\ttf-parser-capi/c5c0c8d06ba6dd49\out\ttfparser-c5c0c8d06ba6dd49)
+
+running 3 tests
+test tests::face_initialization_rejects_null_and_misaligned_storage ... ok
+test tests::glyph_name_too_long_returns_false ... ok
+test tests::sizes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+

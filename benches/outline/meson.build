@@ -1,7 +1,10 @@
-project('benchmarks', 'cpp', default_options : ['cpp_std=c++14'])
+project('benchmarks', 'cpp', default_options : ['cpp_std=c++17'])
 
-google_benchmark = subproject('google-benchmark')
-google_benchmark_dep = google_benchmark.get_variable('google_benchmark_dep')
+cmake = import('cmake')
+options = cmake.subproject_options()
+options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
+google_benchmark = cmake.subproject('google-benchmark', options: options)
+google_benchmark_dep = google_benchmark.dependency('benchmark')
 
 stb_truetype = subproject('stb_truetype')
 stb_truetype_dep = stb_truetype.get_variable('stb_truetype_dep')
@@ -15,4 +18,4 @@ ttf_parser_dep = meson.get_compiler('cpp').find_library('ttfparser',
 executable('outline', 'outline.cc',
     dependencies : [google_benchmark_dep, freetype_dep, stb_truetype_dep, ttf_parser_dep],
     include_directories : ['../../c-api'],
-    override_options : ['cpp_std=c++14'])
+    override_options : ['cpp_std=c++17'])

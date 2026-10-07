@@ -87,7 +87,7 @@ impl<'a> ConditionSet<'a> {
             self.data
                 .get(offset.to_usize()..)
                 .and_then(Condition::parse)
-                .map_or(false, |c| c.evaluate(coords))
+                .is_some_and(|c| c.evaluate(coords))
         })
     }
 }

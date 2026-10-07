@@ -1,0 +1,17 @@
+[package]
+name = "ttf-parser-downstream-smoke"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+ab_glyph = "0.2"
+owned_ttf_parser = "0.25"
+ttf-parser = { path = "../.." }
+
+[patch.crates-io]
+ttf-parser = { path = "../.." }

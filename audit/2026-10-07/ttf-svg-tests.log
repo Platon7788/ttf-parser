@@ -1,0 +1,10 @@
+   Compiling ttf-parser v0.25.1 (D:\GitHub\Rust_Projects\ttf-parser-dataforge)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.73s
+     Running unittests examples\font2svg.rs (target\debug\examples\font2svg-0ab98dfeaa01ed3d.exe)
+
+running 2 tests
+test svg_transform::tests::unrepresentable_transforms_are_rejected ... ok
+test svg_transform::tests::inverse_composition_matches_point_mapping ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

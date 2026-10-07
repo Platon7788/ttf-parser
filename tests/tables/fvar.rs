@@ -166,5 +166,5 @@ fn set_variation_returns_none_for_an_unknown_axis_on_a_full_face() {
     .unwrap();
 
     assert_eq!(face.set_variation(Tag::from_bytes(b"zzzz"), 1.0), None);
-    assert_eq!(face.has_non_default_variation_coordinates(), false);
+    assert!(!face.has_non_default_variation_coordinates());
 }
