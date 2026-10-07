@@ -1,0 +1,39 @@
+{
+  "source_commit": "1a9dc0bba3ce6ffbab7e8796ce3744920b03a063",
+  "ci": "https://github.com/Platon7788/ttf-parser/actions/runs/37584718516",
+  "result": "success",
+  "sanitizer": "ASan",
+  "flags_source": "https://github.com/rust-fuzz/cargo-fuzz/blob/0.13.2/src/project.rs",
+  "requested_seconds_per_target": 120,
+  "observed_seconds_per_target": 121,
+  "targets": [
+    {
+      "target": "fuzz-glyph-index",
+      "runs": 14898804,
+      "cov": 824,
+      "features": 2198,
+      "final_corpus_and_runtime": "1069/5465Kb lim: 53096 exec/s: 123130 rss: 538Mb"
+    },
+    {
+      "target": "fuzz-outline",
+      "runs": 3120513,
+      "cov": 1226,
+      "features": 4221,
+      "final_corpus_and_runtime": "1021/12982Kb lim: 53096 exec/s: 25789 rss: 503Mb"
+    },
+    {
+      "target": "fuzz-variable-outline",
+      "runs": 6977206,
+      "cov": 1345,
+      "features": 4495,
+      "final_corpus_and_runtime": "1006/26Mb lim: 53096 exec/s: 57662 rss: 555Mb"
+    }
+  ],
+  "total_executions": 24996523,
+  "raw_ci_log_sha256": "c439b5ce849a71ffb8411a4c6e36788fb3a698b86e1049ef624bdd1f233bcffe",
+  "limitations": [
+    "Finite three-font seeded campaign, not exhaustive source coverage",
+    "Original run retained CI logs; corpus upload is added for subsequent runs",
+    "Local Windows fuzz target failed to link before execution"
+  ]
+}

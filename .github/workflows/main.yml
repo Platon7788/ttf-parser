@@ -17,6 +17,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - name: Three coverage-guided font targets with ASan
         run: bash testing-tools/ttf-fuzz/run-bounded.sh 120
+      - name: Preserve evolved corpora, logs and crash artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: bounded-font-fuzz
+          path: |
+            target/bounded-fuzz/corpus
+            target/bounded-fuzz/artifacts
+            target/bounded-fuzz/*.log
+          retention-days: 14
+          if-no-files-found: error
   build:
     strategy:
       fail-fast: false

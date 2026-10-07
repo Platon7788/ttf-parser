@@ -115,9 +115,24 @@ claim that every possible font format or all source lines have been proven safe.
 
 ## Maintenance tasks
 
+Initial instrumented campaign
+[37584718516](https://github.com/Platon7788/ttf-parser/actions/runs/37584718516)
+on 1a9dc0bb succeeded: all four native Windows/Ubuntu stable/MSRV jobs plus
+three Linux ASan/libFuzzer targets, 120 seconds requested (121 observed) each.
+Glyph index: 14898804 runs, cov 824; outline: 3120513 runs, cov 1226;
+variable outline: 6977206 runs, cov 1345. Total 24996523 executions without
+crash, timeout or ASan failure. Raw cov counters are not a source coverage
+percentage. This finite campaign supplements deterministic smoke; a longer
+campaign with broader font corpora remains a maintenance task. Future manual
+CI also preserves evolved corpora/logs/crash artifacts for 14 days.
+Windows nightly/cargo-fuzz instrumentation failed to link before any input;
+that attempt is not counted as an executed campaign. The Linux script uses
+nightly and instrumentation flags directly, without installing cargo-fuzz.
+
 - [x] Preserve upstream fixes and API/feature contracts.
 - [x] Modernize MSRV/manifests, parser idioms and unsafe FFI boundary.
 - [x] Add executed boundary/malformed-input proofs and downstream oracle.
+- [x] Initial bounded coverage-guided ASan campaign for all three font targets.
 - [ ] Sustained libFuzzer campaign with corpora and coverage accounting.
 - [ ] Native Wayland/CSD end-to-end regression.
 - [ ] Independent parser/FFI review, 32-bit and allocation-failure validation.
